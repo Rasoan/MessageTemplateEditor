@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "webpack serve",
-    "dist": "webpack --config webpack.config.js",
+    "build": "webpack --config webpack.config.js",
     "test": "jest"
   },
   "author": "Araik Rasayan",
