@@ -2,6 +2,14 @@
 
 import * as React from 'react';
 
+import "./App.scss";
+
 export default function App(): JSX.Element {
-    return <h1>Hello</h1>;
+    return <>
+        <div className={"App"}>
+            <div className={"App__test"}>
+                test
+            </div>
+        </div>
+    </>;
 }
