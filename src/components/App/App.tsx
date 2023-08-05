@@ -3,13 +3,19 @@
 import * as React from 'react';
 
 import "./App.scss";
+import {useState} from "react";
 
 export default function App(): JSX.Element {
-    return <>
-        <div className={"App"}>
-            <div className={"App__test"}>
-                Hello world
-            </div>
-        </div>
-    </>;
+    const [
+        isOpenMessageTemplateEditor,
+        setIsOpenMessageTemplateEditor,
+    ] = useState(false);
+
+    return <div>
+            {
+                isOpenMessageTemplateEditor
+                    ? null
+                    : <button>Message Editor</button>
+            }
+    </div>;
 }
