@@ -8,6 +8,10 @@
         "preserveConstEnums": true,
         "removeComments": true,
         "sourceMap": true,
+        "lib": [
+            "DOM",
+            "ES2021",
+        ],
         "target": "es6"
     },
     "include": [
