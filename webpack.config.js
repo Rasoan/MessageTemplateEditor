@@ -3,8 +3,12 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 
+const isDevBuild = Boolean(process.env.IS_DEV_BUILD);
+
 module.exports = {
-    mode: "production",
+    mode: isDevBuild
+        ? "development"
+        : "production",
     entry: {
         index: './src/index.tsx',
     },
