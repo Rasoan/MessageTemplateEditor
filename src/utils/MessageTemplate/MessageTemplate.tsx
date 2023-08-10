@@ -1,11 +1,11 @@
 'use strict';
 
+import {KEY_POSTFIX_SUBSTRING} from "./constants";
 import {
     IMessageTemplate,
     MESSAGE_TEMPLATE_BLOCK_TYPE,
     MESSAGE_TEMPLATE_FIELD_TYPE,
-} from "./MessageTemplate/types/MessageTemplate";
-import {KEY_POSTFIX_SUBSTRING,} from "./MessageTemplate/constants";
+} from "./types/MessageTemplate";
 
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
