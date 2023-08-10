@@ -10,12 +10,12 @@ import {KEY_POSTFIX_SUBSTRING,} from "./MessageTemplate/constants";
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
     /** Первое и последнее (если разбили первое) поля для ввода текста */
-    private _defaultMessageSnippets: IMessageTemplate.BlockDetails;
+    private _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
 
     /** map-а со значениями полей THEN и ELSE */
-    private _mapMessageSnippets = new Map<
-        IMessageTemplate.KeyMessageSnippets,
-        IMessageTemplate.MessageSnippets
+    private _mapOfIfThenElseBlocks = new Map<
+        IMessageTemplate.KeyIfThenElseBlock,
+        IMessageTemplate.IfThenElseBlock
     >();
 
     constructor() {
@@ -27,21 +27,9 @@ export default class MessageTemplate {
         };
     }
 
-    /** Количество всех блоков */
-    get countAllBlocks() {
-        const countDefaultBlocks = this._defaultMessageSnippets.fieldAdditional !== void 0
-            // если первый блок разбит, то всего 2 поля ввода текста
-            ? 2
-            // иначе одно первое поле ввода и всё (второе до разбития первого отсутствует)
-            : 1
-        ;
-
-        return this.countIfThenElseBlocks + countDefaultBlocks;
-    }
-
     /** Количество IF_THEN_ELSE блоков */
     get countIfThenElseBlocks() {
-        return this._mapMessageSnippets.size;
+        return this._mapOfIfThenElseBlocks.size;
     }
 
     /**
@@ -49,8 +37,8 @@ export default class MessageTemplate {
      *
      * @param positionSplitterInSubMessage - позиция строки в которой мы поделим её на 2 части
      * @param splitDetails - void 0 если разбили самое первое поле
-     * @param splitDetails.pathToParentBlock - путь к родительскому блоку (void 0 для первого IF_THEN_ELSE)
      * @param splitDetails.currentBlockType - тип разбиваемого блока
+     * @param splitDetails.pathToParentBlock - путь к родительскому блоку (void 0 для первого IF_THEN_ELSE)
      */
     public splitField(
         positionSplitterInSubMessage: number,
@@ -64,24 +52,24 @@ export default class MessageTemplate {
             currentBlockType,
         } = splitDetails;
         const {
-            _mapMessageSnippets: mapMessageSnippets,
+            _mapOfIfThenElseBlocks: mapOfIfThenElseBlocks,
         } = this;
-        const key = MessageTemplate._createKeyForMessageSnippetsBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
-        const messageSnippets: IMessageTemplate.MessageSnippets | void = mapMessageSnippets.get(key);
+        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = mapOfIfThenElseBlocks.get(key);
 
-        _checkIsMessageSnippets(messageSnippets);
+        _checkIsIfThenElseBlock(ifThenElseBlock);
 
-        const blockDetails_splitTarget = currentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
-            ? messageSnippets.blockDetails_THEN
+        const messageSnippets_splitTarget: IMessageTemplate.MessageSnippets = currentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+            ? ifThenElseBlock.messageSnippets_THEN
             : currentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
-                ? messageSnippets.blockDetails_ELSE
+                ? ifThenElseBlock.messageSnippets_ELSE
                 : this._defaultMessageSnippets
         ;
 
         const {
             field: splitTarget_field,
-        } = blockDetails_splitTarget;
+        } = messageSnippets_splitTarget;
         const {
             message: splitTarget_message,
             isCanSplit: splitTarget_isCanSplit,
@@ -92,19 +80,19 @@ export default class MessageTemplate {
             throw new Error('The current field is already broken!');
         }
 
-        for (const currentBlockIfThenElse of mapMessageSnippets.values()) {
+        for (const currentBlockIfThenElse of mapOfIfThenElseBlocks.values()) {
             const {
-                blockDetails_THEN,
-                blockDetails_ELSE,
+                messageSnippets_THEN,
+                messageSnippets_ELSE,
             } = currentBlockIfThenElse;
             const {
                 field: fieldBlock_then,
                 fieldAdditional: fieldAdditionalBlock_then,
-            } = blockDetails_THEN;
+            } = messageSnippets_THEN;
             const {
                 field: fieldBlock_else,
                 fieldAdditional: fieldAdditionalBlock_else,
-            } = blockDetails_ELSE;
+            } = messageSnippets_ELSE;
 
             // поскольку поля добавились после разбитого, позицию предыдущих НЕ трогаем
             if (fieldBlock_then.positionInResultMessage <= splitTarget_positionInResultMessage) {
@@ -130,7 +118,7 @@ export default class MessageTemplate {
             pathToParentBlock,
         );
 
-        blockDetails_splitTarget.fieldAdditional = {
+        messageSnippets_splitTarget.fieldAdditional = {
             // закинули вторую часть разбитого поля в дополнительное поле
             message: splitTarget_message.slice(positionSplitterInSubMessage),
             /*
@@ -142,7 +130,7 @@ export default class MessageTemplate {
             isCanSplit: false,
         };
 
-        // выбросили вторую часть сообщения из разбитого поля
+        // удалили вторую часть сообщения из разбитого поля
         splitTarget_field.message = splitTarget_message.slice(0, positionSplitterInSubMessage);
     }
 
@@ -177,24 +165,24 @@ export default class MessageTemplate {
             }
         }
 
-        const key = MessageTemplate._createKeyForMessageSnippetsBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
-        const messageSnippets: void | IMessageTemplate.MessageSnippets = this._mapMessageSnippets.get(key);
+        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
 
-        _checkIsMessageSnippets(messageSnippets);
+        _checkIsIfThenElseBlock(ifThenElseBlock);
 
         switch (currentBlockType) {
             case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
                 const {
-                    blockDetails_THEN,
-                } = messageSnippets;
+                    messageSnippets_THEN,
+                } = ifThenElseBlock;
 
                 switch (fieldType) {
                     case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        return blockDetails_THEN.field.message;
+                        return messageSnippets_THEN.field.message;
                     }
                     case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        return blockDetails_THEN.fieldAdditional.message;
+                        return messageSnippets_THEN.fieldAdditional.message;
                     }
                     default: {
                         // ошибка которая никогда не произойдёт
@@ -204,15 +192,15 @@ export default class MessageTemplate {
             }
             case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
                 const {
-                    blockDetails_ELSE,
-                } = messageSnippets;
+                    messageSnippets_ELSE,
+                } = ifThenElseBlock;
 
                 switch (fieldType) {
                     case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        return blockDetails_ELSE.field.message;
+                        return messageSnippets_ELSE.field.message;
                     }
                     case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        return blockDetails_ELSE.fieldAdditional.message;
+                        return messageSnippets_ELSE.fieldAdditional.message;
                     }
                     default: {
                         // ошибка которая никогда не произойдёт
@@ -249,26 +237,26 @@ export default class MessageTemplate {
             currentBlockType,
             fieldType,
         } = details;
-        const key = MessageTemplate._createKeyForMessageSnippetsBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
-        const messageSnippets: IMessageTemplate.MessageSnippets | void = this._mapMessageSnippets.get(key);
+        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = this._mapOfIfThenElseBlocks.get(key);
 
-        _checkIsMessageSnippets(messageSnippets);
+        _checkIsIfThenElseBlock(ifThenElseBlock);
 
         switch (currentBlockType) {
             case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
                 const {
-                    blockDetails_THEN,
-                } = messageSnippets;
+                    messageSnippets_THEN,
+                } = ifThenElseBlock;
 
                 switch (fieldType) {
                     case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        blockDetails_THEN.field.message = message;
+                        messageSnippets_THEN.field.message = message;
 
                         break;
                     }
                     case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        blockDetails_THEN.fieldAdditional.message = message;
+                        messageSnippets_THEN.fieldAdditional.message = message;
 
                         break;
                     }
@@ -282,17 +270,17 @@ export default class MessageTemplate {
             }
             case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
                 const {
-                    blockDetails_ELSE,
-                } = messageSnippets;
+                    messageSnippets_ELSE,
+                } = ifThenElseBlock;
 
                 switch (fieldType) {
                     case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        blockDetails_ELSE.field.message = message;
+                        messageSnippets_ELSE.field.message = message;
 
                         break;
                     }
                     case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        blockDetails_ELSE.fieldAdditional.message = message;
+                        messageSnippets_ELSE.fieldAdditional.message = message;
 
                         break;
                     }
@@ -317,13 +305,13 @@ export default class MessageTemplate {
      * @param pathToParentBlock - путь к родительскому блоку (включая родителя)
      */
     public getDependencyVariableName(pathToParentBlock: IMessageTemplate.PathToBlock): string {
-        const key = MessageTemplate._createKeyForMessageSnippetsBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
-        const messageSnippets: void | IMessageTemplate.MessageSnippets = this._mapMessageSnippets.get(key);
+        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
 
-        _checkIsMessageSnippets(messageSnippets);
+        _checkIsIfThenElseBlock(ifThenElseBlock);
 
-        return messageSnippets.dependencyVariableName;
+        return ifThenElseBlock.dependencyVariableName;
     }
 
     /**
@@ -336,13 +324,13 @@ export default class MessageTemplate {
         variableName: string,
         pathToParentBlock: IMessageTemplate.PathToBlock,
     ) {
-        const key = MessageTemplate._createKeyForMessageSnippetsBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
-        const messageSnippets: void | IMessageTemplate.MessageSnippets = this._mapMessageSnippets.get(key);
+        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
 
-        _checkIsMessageSnippets(messageSnippets);
+        _checkIsIfThenElseBlock(ifThenElseBlock);
 
-        messageSnippets.dependencyVariableName = variableName;
+        ifThenElseBlock.dependencyVariableName = variableName;
     }
 
     /**
@@ -359,12 +347,12 @@ export default class MessageTemplate {
         pathToParentBlock?: IMessageTemplate.PathToBlock,
     ) {
         const parentPathForNewIfThenElseBlock = MessageTemplate.createPathForIfThenElseBlock(currentBlockType, pathToParentBlock);
-        const keyForNewIfThenElseBlock = MessageTemplate._createKeyForMessageSnippetsBlock(parentPathForNewIfThenElseBlock);
+        const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(parentPathForNewIfThenElseBlock);
 
-        const newIfThenElseBlock: IMessageTemplate.MessageSnippets = {
+        const newIfThenElseBlock: IMessageTemplate.IfThenElseBlock = {
             pathToParentBlock,
             dependencyVariableName: '',
-            blockDetails_THEN: {
+            messageSnippets_THEN: {
                 field: {
                     message: '',
                     // новый field блока THEN будет на 1 после предыдущего родительского
@@ -372,7 +360,7 @@ export default class MessageTemplate {
                     isCanSplit: true,
                 },
             },
-            blockDetails_ELSE: {
+            messageSnippets_ELSE: {
                 field: {
                     message: '',
                     // новый field блока ELSE будет на 2 после предыдущего родительского (перед ним блок THEN)
@@ -382,7 +370,7 @@ export default class MessageTemplate {
             },
         }
 
-        this._mapMessageSnippets.set(keyForNewIfThenElseBlock, newIfThenElseBlock);
+        this._mapOfIfThenElseBlocks.set(keyForNewIfThenElseBlock, newIfThenElseBlock);
     }
 
     /**
@@ -415,35 +403,35 @@ export default class MessageTemplate {
      * @param pathToParentBlock - путь к родительскому блоку (включая его самого) IF_THEN_ELSE {@link IMessageTemplate}
      * @private
      */
-    private static _createKeyForMessageSnippetsBlock(
+    private static _createKeyForIfThenElseBlock(
         pathToParentBlock: IMessageTemplate.PathToBlock,
-    ): IMessageTemplate.KeyMessageSnippets {
+    ): IMessageTemplate.KeyIfThenElseBlock {
         // в остальных случая генерируем ключ для THEN/ELSE
-        return pathToParentBlock + KEY_POSTFIX_SUBSTRING as IMessageTemplate.KeyMessageSnippets;
+        return pathToParentBlock + KEY_POSTFIX_SUBSTRING as IMessageTemplate.KeyIfThenElseBlock;
     }
 }
 
-function _checkIsMessageSnippets(
-    messageSnippets: IMessageTemplate.MessageSnippets | any,
-): asserts messageSnippets is IMessageTemplate.MessageSnippets  {
+function _checkIsIfThenElseBlock(
+    ifThenElseBlock: IMessageTemplate.IfThenElseBlock | any,
+): asserts ifThenElseBlock is IMessageTemplate.IfThenElseBlock  {
     const textError = 'MessageSnippets is any type';
 
-    if (typeof messageSnippets !== 'object') {
+    if (typeof ifThenElseBlock !== 'object') {
         throw new Error(textError);
     }
 
     const {
         pathToParentBlock,
         dependencyVariableName,
-        blockDetails_THEN,
-        blockDetails_ELSE,
-    } = (messageSnippets || {}) as IMessageTemplate.MessageSnippets;
+        messageSnippets_THEN,
+        messageSnippets_ELSE,
+    } = (ifThenElseBlock || {}) as IMessageTemplate.IfThenElseBlock;
 
     if (
         pathToParentBlock === void 0
         || dependencyVariableName === void 0
-        || blockDetails_THEN === void 0
-        || blockDetails_ELSE === void 0
+        || messageSnippets_THEN === void 0
+        || messageSnippets_ELSE === void 0
     ) {
         throw new Error(textError);
     }

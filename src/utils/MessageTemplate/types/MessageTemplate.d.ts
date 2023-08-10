@@ -1,20 +1,19 @@
 //
 export namespace IMessageTemplate {
-    // todo: MessageSnippets не существует, есть ifThenElse блок, и надо это переименовать на IfThenElseBlock
     /** Части сообщения, некоторые из которых попадут в результирующее сообщение (блок IF_THEN_ELSE) */
-    interface MessageSnippets {
+    interface IfThenElseBlock {
         /** Путь к родительскому блоку (включая его самого). */
         pathToParentBlock: PathToBlock,
-        /** Название переменной от которой будет зависеть этот блок */
+        /** Название переменной в IF от которой будет зависеть этот блок */
         dependencyVariableName: string;
         /** Блок THEN */
-        blockDetails_THEN: BlockDetails;
+        messageSnippets_THEN: MessageSnippets;
         /** Блок ELSE */
-        blockDetails_ELSE: BlockDetails;
+        messageSnippets_ELSE: MessageSnippets;
     }
 
     /** Информация о блоке THEN/ELSE */
-    interface BlockDetails {
+    interface MessageSnippets {
         /** Исходное поле ввода текста в блоке */
         field: MessageFieldDetails,
         /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
@@ -46,7 +45,7 @@ export namespace IMessageTemplate {
      * где каждое число - это тип родительского блока на соответствующем уровне
      * (включая родителя в которого вложен) {@link MESSAGE_TEMPLATE_BLOCK_TYPE}
      */
-    type KeyMessageSnippets = Opaque<string, 'KeyMessageSnippets'>;
+    type KeyIfThenElseBlock = Opaque<string, 'KeyMessageSnippets'>;
 }
 
 /** Тип поля ввода */
