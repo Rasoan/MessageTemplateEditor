@@ -1,5 +1,9 @@
 //
 export namespace IMessageTemplate {
+    interface Options {
+        handleUpdateState: () => void;
+    }
+
     /** Части сообщения, некоторые из которых попадут в результирующее сообщение (блок IF_THEN_ELSE) */
     interface IfThenElseBlock {
         /** Путь к родительскому блоку (включая его самого). */
@@ -18,6 +22,14 @@ export namespace IMessageTemplate {
         field: MessageFieldDetails,
         /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
         fieldAdditional?: MessageAdditionalFieldDetails,
+        /**
+         *  Версия текущего состояния блока,
+         *  при onChange текстовых полей или изменения свойств этого блока
+         *  версия будет изменяться от 0 до бесконечности, а компоненты ререндерится, потому что будут подписаны
+         *  на версию своего соответствующего блока.
+         *  1, 2, 3... N
+         * */
+        version: number;
     }
 
     interface MessageFieldDetails {
@@ -27,6 +39,13 @@ export namespace IMessageTemplate {
         positionInResultMessage: number,
         /** true если поле можно разбить на 2 и закинуть IF_THEN_ELSE между */
         isCanSplit: boolean;
+    }
+
+    interface BlurSnippetMessageInformation {
+        pathToParentBlock: IMessageTemplate.PathToBlock;
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
+        fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
+        cursorPosition: number;
     }
 
     /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
