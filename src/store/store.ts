@@ -1,25 +1,40 @@
 'use strict';
 
-import { create } from 'zustand';
+import create from "zustand";
 import {
-    persist,
-    createJSONStorage,
     devtools,
 } from 'zustand/middleware';
 
-import MessageTemplate from "../utils/MessageTemplate/MessageTemplate";
+import ZustandStateManager from "./ZustandStateManager/ZustandStateManager";
 import {immer} from "zustand/middleware/immer";
-import BaseState from "../BaseState/BaseState";
+import {IZustandStateManager} from "./ZustandStateManager/types/ZustandStateManager";
 
-const useBaseStore = create<BaseState>()(
-    persist(
-        immer(
-            devtools((setState) => new BaseState({setState}))
-        ),
-        {
-            name: 'storage',
-        }
+/** Код взял [здесь]{@link https://docs.pmnd.rs/zustand/guides/typescript#middleware-that-doesn't-change-the-store-type} */
+const customMiddleware: IZustandStateManager.CustomMiddleware = (f, name) => (set, get, store) => {
+
+    // Вклинились в set() и встроили свой код
+    const proxySet: typeof set = (...a) => {
+        const zustandStateManager = get() as ZustandStateManager;
+
+        set(...a);
+
+        console.log(zustandStateManager.state.messageTemplate.getMessageSnippets());
+    }
+
+    store.setState = proxySet;
+
+    return f(proxySet, get, store);
+};
+
+export default create<ZustandStateManager>()(
+    immer(
+        devtools(
+            customMiddleware(
+                (setState) => new ZustandStateManager({
+                    setState: setState as IZustandStateManager.SetState,
+                }),
+            ),
+            { serialize: true },
+        )
     )
 );
-
-export default useBaseStore;

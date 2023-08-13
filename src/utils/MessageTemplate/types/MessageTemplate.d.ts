@@ -1,7 +1,7 @@
 //
 export namespace IMessageTemplate {
     interface Options {
-        handleUpdateState: () => void;
+        stateChangeNotify: Function;
     }
 
     /** Части сообщения, некоторые из которых попадут в результирующее сообщение (блок IF_THEN_ELSE) */
@@ -22,14 +22,6 @@ export namespace IMessageTemplate {
         field: MessageFieldDetails,
         /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
         fieldAdditional?: MessageAdditionalFieldDetails,
-        /**
-         *  Версия текущего состояния блока,
-         *  при onChange текстовых полей или изменения свойств этого блока
-         *  версия будет изменяться от 0 до бесконечности, а компоненты ререндерится, потому что будут подписаны
-         *  на версию своего соответствующего блока.
-         *  1, 2, 3... N
-         * */
-        version: number;
     }
 
     interface MessageFieldDetails {

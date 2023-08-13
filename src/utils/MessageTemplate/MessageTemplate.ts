@@ -6,8 +6,8 @@ import {IMessageTemplate, MESSAGE_TEMPLATE_BLOCK_TYPE, MESSAGE_TEMPLATE_FIELD_TY
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
     /** Первое и последнее (если разбили первое) поля для ввода текста */
-    private _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
-    private _handleUpdateState: Function;
+    private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
+    private readonly _stateChangeNotify: Function;
     private _lastBlurSnippetMessageInformation?: IMessageTemplate.BlurSnippetMessageInformation;
 
     /** map-а со значениями полей THEN и ELSE */
@@ -18,7 +18,7 @@ export default class MessageTemplate {
 
     constructor(options: IMessageTemplate.Options) {
         const {
-            handleUpdateState,
+            stateChangeNotify,
         } = options;
         // todo: заглушка до того момента, когда подключим localStorage
         this._defaultMessageSnippets = {
@@ -27,10 +27,9 @@ export default class MessageTemplate {
                 isCanSplit: true,
                 positionInResultMessage: 0,
             },
-            version: 0,
         };
 
-        this._handleUpdateState = handleUpdateState;
+        this._stateChangeNotify = stateChangeNotify;
     }
 
     get lastBlurSnippetMessageInformation() {
@@ -45,7 +44,7 @@ export default class MessageTemplate {
     public setLastBlurSnippetMessageInformation(blurSnippetMessageInformation: IMessageTemplate.BlurSnippetMessageInformation) {
         this._lastBlurSnippetMessageInformation = blurSnippetMessageInformation;
 
-        this._handleUpdateState();
+        this._stateChangeNotify();
     }
 
     /**
@@ -166,8 +165,7 @@ export default class MessageTemplate {
         splitTarget_field.message = splitTarget_message.slice(0, positionSplitterInSubMessage);
         splitTarget_field.isCanSplit = false;
 
-        messageSnippets_splitTarget.version++;
-        this._handleUpdateState();
+        this._stateChangeNotify();
     }
 
     /**
@@ -197,21 +195,6 @@ export default class MessageTemplate {
                 return ifThenElseBlock.messageSnippets_ELSE;
             }
         }
-    }
-
-    /**
-     * Получить версию блока THEN или ELSE или первый блок (для перерендера компоненты в случае изменения состояния)
-     *
-     * @param pathToParentBlock - путь к родительскому блоку
-     * @param blockType - тип блока (void 0 если первый блок НЕ вложенный в ifThenElse)
-     */
-    public getVersionBlockForce(
-        pathToParentBlock?: IMessageTemplate.PathToBlock,
-        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
-    ) {
-        const { version } = this.getBlockInformationForce(pathToParentBlock, blockType);
-
-        return version;
     }
 
     /**
@@ -301,9 +284,7 @@ export default class MessageTemplate {
                 }
             }
 
-            defaultMessageSnippets.version++;
-
-            this._handleUpdateState();
+            this._stateChangeNotify();
 
             return;
         }
@@ -337,8 +318,6 @@ export default class MessageTemplate {
                     }
                 }
 
-                messageSnippets_THEN.version++;
-
                 break;
             }
             case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
@@ -363,8 +342,6 @@ export default class MessageTemplate {
                     }
                 }
 
-                messageSnippets_ELSE.version++;
-
                 break;
             }
             default: {
@@ -373,7 +350,7 @@ export default class MessageTemplate {
             }
         }
 
-        this._handleUpdateState();
+        this._stateChangeNotify();
     }
 
     /**
@@ -394,7 +371,7 @@ export default class MessageTemplate {
 
         ifThenElseBlock.dependencyVariableName = variableName;
 
-        this._handleUpdateState();
+        this._stateChangeNotify();
     }
 
     /**
@@ -423,7 +400,6 @@ export default class MessageTemplate {
                     positionInResultMessage: positionPreviousFieldInResultMessage + 1,
                     isCanSplit: true,
                 },
-                version: 0,
             },
             messageSnippets_ELSE: {
                 field: {
@@ -432,7 +408,6 @@ export default class MessageTemplate {
                     positionInResultMessage: positionPreviousFieldInResultMessage + 2,
                     isCanSplit: true,
                 },
-                version: 0,
             },
         }
 
