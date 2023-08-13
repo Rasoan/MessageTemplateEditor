@@ -1,0 +1,15 @@
+.conditionalBlockThen {
+  display: flex;
+
+  &__header {
+    margin-left: 10px;
+  }
+}
+
+.conditionalBlockElse {
+  display: flex;
+
+  &__header {
+    margin-left: 10px;
+  }
+}
