@@ -19,7 +19,7 @@ export default class ZustandStateManager extends BaseStateManager {
             setState,
         } = options;
 
-        super(options);
+        super();
 
         this._setState = setState;
     }

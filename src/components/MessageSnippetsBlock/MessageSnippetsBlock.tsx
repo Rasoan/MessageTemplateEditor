@@ -70,6 +70,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
                 ? <>
                     <IfThenElse
                         countNested={countNested}
+                        // todo: здесь мы должны прокидывать готовый путь, он должен быть готовым, а не переданным, мы фактически игнорируем эти пути у стейта
                         pathToParentBlock={MessageTemplate.createPathForIfThenElseBlock(
                             blockType,
                             pathToParentBlock

@@ -64,10 +64,10 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     };
 
     useEffect(() => {
-        ref.current.addEventListener('keydown', onChangeCursorPosition);
+        ref.current?.addEventListener('keydown', onChangeCursorPosition);
 
         return () => {
-            ref.current.removeEventListener('keydown', onChangeCursorPosition);
+            ref.current?.removeEventListener('keydown', onChangeCursorPosition);
         };
     }, []);
 
