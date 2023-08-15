@@ -13,14 +13,14 @@ import "./IfThenElse.scss";
 
 interface IfThenElseProps {
     /** Путь к родительскому блоку (void 0 если самый первый ifThenElse) */
-    pathToParentBlock?: IMessageTemplate.PathToBlock;
+    path?: IMessageTemplate.PathToBlock;
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
 }
 
 const IfThenElse: React.FC<IfThenElseProps> = (props) => {
     const {
-        pathToParentBlock,
+        path,
         countNested,
     } = props;
 
@@ -29,16 +29,16 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
 
         // todo: я бы сделал так, нужно поставить фиксатор на ограничение рекурсивной вложенности,
         //  но поскольку этого в ТЗ нет, ограничусь console.error.
-        //throw new Error(textError);
+        throw new Error(textError);
 
-        console.error(textError);
+        // console.error(textError);
     }
 
     return <div className={"conditionalBlock"}>
         <div className={"conditionalBlock__if conditionalBlockIf"}>
             <StickerForCondition content={'if'} />
             <MessageTemplateConditionEditor
-                pathToParentBlock={pathToParentBlock}
+                pathToParentBlock={path}
             />
         </div>
         <div className={"conditionalBlock__then conditionalBlockThen"}>
@@ -46,7 +46,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 <StickerForCondition content={'then'}/>
             </div>
             <MessageSnippetsBlock
-                pathToParentBlock={pathToParentBlock}
+                pathToParentIfThenElseBlock={path}
                 blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.THEN}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}
@@ -57,7 +57,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 <StickerForCondition content={'else'} />
             </div>
             <MessageSnippetsBlock
-                pathToParentBlock={pathToParentBlock}
+                pathToParentIfThenElseBlock={path}
                 blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}

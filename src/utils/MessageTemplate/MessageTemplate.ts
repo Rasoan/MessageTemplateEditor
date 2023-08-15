@@ -63,6 +63,8 @@ export default class MessageTemplate {
         }
 
         this._defaultMessageSnippets = {
+            // первый блок тем и отличается от THEN/ELSE, что у него пути нет, ведь он первый:)
+            path: void 0,
             field: {
                 message: '',
                 isCanSplit: true,
@@ -101,7 +103,7 @@ export default class MessageTemplate {
         const {
             fieldType,
             blockType: currentBlockType,
-            pathToParentBlock,
+            pathToIfThenElseBlock,
             cursorPosition: positionSplitterInSubMessage,
         } = lastBlurSnippetMessageInformation;
 
@@ -112,7 +114,7 @@ export default class MessageTemplate {
         const {
             _mapOfIfThenElseBlocks: mapOfIfThenElseBlocks,
         } = this;
-        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToIfThenElseBlock);
 
         const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = mapOfIfThenElseBlocks.get(key);
 
@@ -172,7 +174,7 @@ export default class MessageTemplate {
         this._createIfThenElseBlock(
             splitTarget_positionInResultMessage,
             currentBlockType,
-            pathToParentBlock,
+            pathToIfThenElseBlock,
         );
 
         messageSnippets_splitTarget.fieldAdditional = {
@@ -292,13 +294,14 @@ export default class MessageTemplate {
         details: {
             fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
             currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
-            pathToParentBlock?: IMessageTemplate.PathToBlock,
+            /** Путь к родительскому ifThenElse или void 0, если первый блок */
+            path?: IMessageTemplate.PathToBlock,
         },
     ) {
         const {
             currentBlockType,
             fieldType,
-            pathToParentBlock = '' as IMessageTemplate.PathToBlock,
+            path = '' as IMessageTemplate.PathToBlock,
         } = details;
 
         if (currentBlockType === void 0) {
@@ -328,7 +331,7 @@ export default class MessageTemplate {
             return;
         }
 
-        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(path);
 
         const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = this._mapOfIfThenElseBlocks.get(key);
 
@@ -418,21 +421,22 @@ export default class MessageTemplate {
      *
      * @param positionPreviousFieldInResultMessage - позиция в результирующем сообщении первой части разбитого на 2 field
      * @param currentBlockType - тип текущего блока в который будет вложен новый IF_THEN_ELSE блок
-     * @param pathToParentBlock - путь к родительскому блоку
+     * @param path - путь к родительскому блоку
      * @private
      */
     private _createIfThenElseBlock(
         positionPreviousFieldInResultMessage: number,
         currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
-        pathToParentBlock?: IMessageTemplate.PathToBlock,
+        path?: IMessageTemplate.PathToBlock,
     ) {
-        const parentPathForNewIfThenElseBlock = MessageTemplate.createPathForIfThenElseBlock(currentBlockType, pathToParentBlock);
+        const parentPathForNewIfThenElseBlock = MessageTemplate.createPath(currentBlockType, path);
         const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(parentPathForNewIfThenElseBlock);
 
         const newIfThenElseBlock: IMessageTemplate.IfThenElseBlock = {
-            pathToParentBlock,
+            path,
             dependencyVariableName: '',
             messageSnippets_THEN: {
+                path: MessageTemplate.createPath(MESSAGE_TEMPLATE_BLOCK_TYPE.THEN, path),
                 field: {
                     message: '',
                     // новый field блока THEN будет на 1 после предыдущего родительского
@@ -441,6 +445,7 @@ export default class MessageTemplate {
                 },
             },
             messageSnippets_ELSE: {
+                path: MessageTemplate.createPath(MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE, path),
                 field: {
                     message: '',
                     // новый field блока ELSE будет на 2 после предыдущего родительского (перед ним блок THEN)
@@ -490,14 +495,14 @@ export default class MessageTemplate {
             const {
                 messageSnippets_THEN,
                 messageSnippets_ELSE,
-                pathToParentBlock,
+                path,
                 dependencyVariableName,
             } = ifThenElseBlockJSON;
 
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN] = _messageSnippetsJSONToDTO(messageSnippets_THEN);
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE] = _messageSnippetsJSONToDTO(messageSnippets_ELSE);
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName] = dependencyVariableName;
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.pathToParentBlock] = pathToParentBlock;
+            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path] = path;
 
             ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO] = ifThenElseBlockDTO;
 
@@ -514,7 +519,7 @@ export default class MessageTemplate {
             const {
                 fieldType,
                 blockType,
-                pathToParentBlock,
+                pathToIfThenElseBlock,
                 cursorPosition,
             } = lastBlurSnippetMessageInformation;
 
@@ -523,7 +528,7 @@ export default class MessageTemplate {
             blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType] = blockType;
             blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.fieldType] = fieldType;
             blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.cursorPosition] = cursorPosition;
-            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToParentBlock] = pathToParentBlock;
+            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
 
             messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = blurSnippetMessageInformationDTO;
         }
@@ -552,7 +557,7 @@ export default class MessageTemplate {
                     ifThenElseBlockJSON: {
                         messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
                         messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
-                        pathToParentBlock: ifThenElseBlockDTO[IfThenElseBlockDTO_Props.pathToParentBlock],
+                        path: ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path],
                         dependencyVariableName: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
                     },
                     key: ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key],
@@ -560,7 +565,7 @@ export default class MessageTemplate {
             }),
             lastBlurSnippetMessageInformation: {
                 fieldType: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.fieldType],
-                pathToParentBlock: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToParentBlock],
+                pathToIfThenElseBlock: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock],
                 blockType: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType],
                 cursorPosition: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.cursorPosition],
             },
@@ -574,7 +579,7 @@ export default class MessageTemplate {
      * @param pathToParentBlock - путь к родительскому блоку (включая его самого) IF_THEN_ELSE (void 0 или '' если это первый IF_THEN_ELSE) {@link IMessageTemplate}
      * @private
      */
-    public static createPathForIfThenElseBlock(
+    public static createPath(
         currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
         pathToParentBlock: IMessageTemplate.PathToBlock = '' as IMessageTemplate.PathToBlock,
     ): IMessageTemplate.PathToBlock {
@@ -600,7 +605,7 @@ export default class MessageTemplate {
     private static _createKeyForIfThenElseBlock(
         pathToParentBlock?: IMessageTemplate.PathToBlock,
     ): IMessageTemplate.KeyIfThenElseBlock {
-        const prefix = pathToParentBlock !== void 0
+        const prefix = pathToParentBlock
             ? pathToParentBlock
             : ''
         ;
@@ -649,9 +654,12 @@ function _messageSnippetsJSONToDTO(messageSnippetsJSON: IMessageTemplate.Message
     const messageSnippetsDTO = new Array(MessageSnippetsDTO_Props.__SIZE__) as MessageSnippetsDTO;
 
     const {
+        path,
         field,
         fieldAdditional,
     } = messageSnippetsJSON;
+
+    messageSnippetsDTO[MessageSnippetsDTO_Props.path] = path;
 
     // field
     {
@@ -702,23 +710,22 @@ function _messageSnippetsDTOtoJSON(messageSnippetsDTO: MessageSnippetsDTO): IMes
         positionInResultMessage: fieldDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
     };
 
-    if (!fieldAdditionalDTO) {
-        return {
-            field: fieldJSON,
-        }
-    }
+    const fieldAdditional_isCanSplit: boolean | void = (fieldAdditionalDTO || [])[MessageFieldDetailsDTO_Props.isCanSplit];
 
-    if (fieldAdditionalDTO[MessageFieldDetailsDTO_Props.isCanSplit] === true) {
+    if (fieldAdditional_isCanSplit === true) {
         throw new Error('Flag isCanSplit of fieldAdditionalDTO can\'t be true!');
     }
 
     return {
+        path: messageSnippetsDTO[MessageSnippetsDTO_Props.path],
         field: fieldJSON,
-        fieldAdditional: {
-            message: _normalizeString(fieldAdditionalDTO[MessageFieldDetailsDTO_Props.message]),
-            isCanSplit: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.isCanSplit],
-            positionInResultMessage: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
-        },
+        fieldAdditional: fieldAdditionalDTO
+            ? {
+                message: _normalizeString(fieldAdditionalDTO[MessageFieldDetailsDTO_Props.message]),
+                isCanSplit: fieldAdditional_isCanSplit,
+                positionInResultMessage: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
+            }
+            : void 0,
     }
 }
 

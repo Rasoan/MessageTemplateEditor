@@ -20,14 +20,14 @@ interface MessageSnippetsBlockProps {
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
     /** Путь к родительскому блоку */
-    pathToParentBlock?: IMessageTemplate.PathToBlock,
+    pathToParentIfThenElseBlock?: IMessageTemplate.PathToBlock,
     /** Тип блока */
     blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
 }
 
 const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
     const {
-        pathToParentBlock,
+        pathToParentIfThenElseBlock,
         blockType,
         countNested,
     } = props;
@@ -39,10 +39,11 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         shallow,
     );
     const blockInformation = messageTemplate.getBlockInformationForce(
-        pathToParentBlock,
+        pathToParentIfThenElseBlock,
         blockType,
     );
     const {
+        path,
         field,
         fieldAdditional,
     } = blockInformation;
@@ -60,7 +61,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
     return <div>
         <MessageTemplateEditor
             isCanSplit={field_isCanSplit}
-            pathToParentBlock={pathToParentBlock}
+            path={pathToParentIfThenElseBlock}
             blockType={blockType}
             fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL}
         />
@@ -70,15 +71,11 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
                 ? <>
                     <IfThenElse
                         countNested={countNested}
-                        // todo: здесь мы должны прокидывать готовый путь, он должен быть готовым, а не переданным, мы фактически игнорируем эти пути у стейта
-                        pathToParentBlock={MessageTemplate.createPathForIfThenElseBlock(
-                            blockType,
-                            pathToParentBlock
-                        )}
+                        path={path}
                     />
                     <MessageTemplateEditor
                         isCanSplit={fieldAdditional_isCanSplit}
-                        pathToParentBlock={pathToParentBlock}
+                        path={pathToParentIfThenElseBlock}
                         blockType={blockType}
                         fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL}
                     />

@@ -16,15 +16,15 @@ import {shallow} from "zustand/shallow";
 interface MessageTemplateEditorProps {
     /** true если можно разбить на 2 */
     isCanSplit: boolean;
-    pathToParentBlock: IMessageTemplate.PathToBlock;
     blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
+    path?: IMessageTemplate.PathToBlock;
 }
 
 // todo: rename to MessageEditor
 const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const {
-        pathToParentBlock,
+        path,
         blockType,
         fieldType,
     } = props;
@@ -35,7 +35,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         (stateManager) => [
             stateManager.state.messageTemplate,
             stateManager.state.messageTemplate.getBlockInformationForce(
-                pathToParentBlock,
+                path,
                 blockType,
             )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].message,
         ],
@@ -48,7 +48,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         messageTemplate.setSnippetMessage(
             onChangeEvent.currentTarget.value,
             {
-                pathToParentBlock,
+                path,
                 currentBlockType: blockType,
                 fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
             }
@@ -58,7 +58,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         messageTemplate.setLastBlurSnippetMessageInformation({
             blockType,
             fieldType,
-            pathToParentBlock,
+            pathToIfThenElseBlock: path,
             cursorPosition: 3,
         });
     };
