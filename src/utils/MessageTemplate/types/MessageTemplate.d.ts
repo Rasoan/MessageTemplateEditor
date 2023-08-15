@@ -19,18 +19,20 @@ export namespace IMessageTemplate {
 
     /** Информация о блоке THEN/ELSE или первом поле ввода */
     interface MessageSnippets {
+        /** Исходное поле ввода текста в блоке */
+        field: MessageFieldDetails,
+        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
         /**
          * Путь к текущему блоку THEN/ELSE
          * (состоит из пути к родительскому ifThenElse + тип текущего блока) (void 0 если это исходный первый блок).
          */
         path?: PathToBlock | void,
-        /** Исходное поле ввода текста в блоке */
-        field: MessageFieldDetails,
         /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
         fieldAdditional?: MessageAdditionalFieldDetails,
     }
 
     interface MessageFieldDetails {
+        fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
         /** Текст сообщения */
         message: string,
         /** Номер позиции в результирующем сообщении */
@@ -42,7 +44,7 @@ export namespace IMessageTemplate {
     interface BlurSnippetMessageInformation {
         /** Путь к родительскому блоку ifThenElse выделенного field */
         pathToIfThenElseBlock?: IMessageTemplate.PathToBlock | void;
-        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
+        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
         fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
         cursorPosition: number;
     }
@@ -122,14 +124,16 @@ export type IfThenElseBlockDTO = [
 ];
 
 export const enum MessageSnippetsDTO_Props {
-    path = 0,
-    field = 1,
-    fieldAdditional = 2,
+    blockType = 0,
+    path = 1,
+    field = 2,
+    fieldAdditional = 3,
 
-    __SIZE__ = 3
+    __SIZE__ = 4
 }
 
 export type MessageSnippetsDTO = [
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
     path: IMessageTemplate.PathToBlock | void,
     field: MessageFieldDetailsDTO,
     fieldAdditional: MessageFieldDetailsDTO,
@@ -137,14 +141,16 @@ export type MessageSnippetsDTO = [
 
 export const enum MessageFieldDetailsDTO_Props {
     message = 0,
-    positionInResultMessage = 1,
-    isCanSplit = 2,
+    fieldType = 1,
+    positionInResultMessage = 2,
+    isCanSplit = 3,
 
-    __SIZE__ = 3
+    __SIZE__ = 4
 }
 
 export type MessageFieldDetailsDTO = [
     message: string,
+    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
     positionInResultMessage: number,
     isCanSplit: boolean,
 ];
@@ -168,7 +174,7 @@ export const enum BlurSnippetMessageInformationDTO_Props {
 
 export type BlurSnippetMessageInformationDTO = [
     pathToIfThenElseBlock: IMessageTemplate.PathToBlock | void,
-    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
     cursorPosition: number,
 ]

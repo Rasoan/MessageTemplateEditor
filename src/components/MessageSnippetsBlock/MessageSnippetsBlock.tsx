@@ -22,7 +22,7 @@ interface MessageSnippetsBlockProps {
     /** Путь к родительскому ifThenElse блоку */
     path?: IMessageTemplate.PathToBlock | void,
     /** Тип блока */
-    blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
+    blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
 }
 
 const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
@@ -48,12 +48,12 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         fieldAdditional,
     } = blockInformation;
     const {
-        message: field_message,
+        fieldType: field_fieldType,
         isCanSplit: field_isCanSplit,
         positionInResultMessage: field_positionInResultMessage,
     } = field;
     const {
-        message: fieldAdditional_message,
+        fieldType: fieldAdditional_fieldType,
         isCanSplit: fieldAdditional_isCanSplit,
         positionInResultMessage: fieldAdditional_positionInResultMessage,
     } = fieldAdditional || {};
@@ -63,7 +63,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
             isCanSplit={field_isCanSplit}
             path={path}
             blockType={blockType}
-            fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL}
+            fieldType={field_fieldType}
         />
         {
             // если поле нельзя разбить, то оно уже разбито, тогда отрисуем дополнительные элементы (IF_THEN_ELSE и второй осколок разбитого поля)
@@ -77,7 +77,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
                         isCanSplit={fieldAdditional_isCanSplit}
                         path={path}
                         blockType={blockType}
-                        fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL}
+                        fieldType={fieldAdditional_fieldType}
                     />
                 </>
                 : null

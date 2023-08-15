@@ -16,7 +16,7 @@ import {shallow} from "zustand/shallow";
 interface MessageTemplateEditorProps {
     /** true если можно разбить на 2 */
     isCanSplit: boolean;
-    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
     path?: IMessageTemplate.PathToBlock | void;
 }

@@ -3,7 +3,11 @@
 import * as React from 'react';
 import StickerForCondition from "../StickerForCondition/StickerForCondition";
 import MessageTemplateConditionEditor from "../MessageTemplateConditionEditor/MessageTemplateConditionEditor";
-import {IMessageTemplate, MESSAGE_TEMPLATE_BLOCK_TYPE} from "../../utils/MessageTemplate/types/MessageTemplate";
+import {
+    IMessageTemplate,
+    MESSAGE_TEMPLATE_BLOCK_TYPE,
+    MESSAGE_TEMPLATE_FIELD_TYPE
+} from "../../utils/MessageTemplate/types/MessageTemplate";
 import MessageSnippetsBlock from "../MessageSnippetsBlock/MessageSnippetsBlock";
 import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../../utils/constants";
 import useBaseStore from "../../store/store";
@@ -23,6 +27,17 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
         path,
         countNested,
     } = props;
+    const ifThenElse = useBaseStore(
+        (stateManager) => stateManager.state.messageTemplate.getIfThenElseForce(path),
+    );
+    const {
+        messageSnippets_THEN: {
+            blockType: blockTypeTHEN,
+        },
+        messageSnippets_ELSE: {
+            blockType: blockTypeELSE,
+        },
+    } = ifThenElse;
 
     if (countNested > MAX_RECURSION_OF_NESTED_BLOCKS) {
         const textError = 'Превышен порог максимальной вложенности ifThenElse друг в друга, программа зациклилась!';
@@ -47,7 +62,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
             </div>
             <MessageSnippetsBlock
                 path={path}
-                blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.THEN}
+                blockType={blockTypeTHEN}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}
             />
@@ -58,7 +73,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
             </div>
             <MessageSnippetsBlock
                 path={path}
-                blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE}
+                blockType={blockTypeELSE}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}
             />
