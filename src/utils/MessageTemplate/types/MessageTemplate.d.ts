@@ -8,7 +8,7 @@ export namespace IMessageTemplate {
     /** Части сообщения, некоторые из которых попадут в результирующее сообщение (блок IF_THEN_ELSE) */
     interface IfThenElseBlock {
         /** Путь к ifThenElse блоку. */
-        path: PathToBlock,
+        path?: PathToBlock | void,
         /** Название переменной в IF от которой будет зависеть этот блок */
         dependencyVariableName: string;
         /** Блок THEN */
@@ -17,13 +17,13 @@ export namespace IMessageTemplate {
         messageSnippets_ELSE: MessageSnippets;
     }
 
-    /** Информация о блоке THEN/ELSE */
+    /** Информация о блоке THEN/ELSE или первом поле ввода */
     interface MessageSnippets {
         /**
          * Путь к текущему блоку THEN/ELSE
          * (состоит из пути к родительскому ifThenElse + тип текущего блока) (void 0 если это исходный первый блок).
          */
-        path?: PathToBlock,
+        path?: PathToBlock | void,
         /** Исходное поле ввода текста в блоке */
         field: MessageFieldDetails,
         /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
@@ -41,7 +41,7 @@ export namespace IMessageTemplate {
 
     interface BlurSnippetMessageInformation {
         /** Путь к родительскому блоку ifThenElse выделенного field */
-        pathToIfThenElseBlock: IMessageTemplate.PathToBlock;
+        pathToIfThenElseBlock?: IMessageTemplate.PathToBlock | void;
         blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
         fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
         cursorPosition: number;
@@ -115,7 +115,7 @@ export const enum IfThenElseBlockDTO_Props {
 }
 
 export type IfThenElseBlockDTO = [
-    path: IMessageTemplate.PathToBlock,
+    path: IMessageTemplate.PathToBlock | void,
     dependencyVariableName: string,
     messageSnippets_THEN: MessageSnippetsDTO,
     messageSnippets_ELSE: MessageSnippetsDTO,
@@ -130,7 +130,7 @@ export const enum MessageSnippetsDTO_Props {
 }
 
 export type MessageSnippetsDTO = [
-    path: IMessageTemplate.PathToBlock,
+    path: IMessageTemplate.PathToBlock | void,
     field: MessageFieldDetailsDTO,
     fieldAdditional: MessageFieldDetailsDTO,
 ];
@@ -167,7 +167,7 @@ export const enum BlurSnippetMessageInformationDTO_Props {
 }
 
 export type BlurSnippetMessageInformationDTO = [
-    pathToIfThenElseBlock: IMessageTemplate.PathToBlock,
+    pathToIfThenElseBlock: IMessageTemplate.PathToBlock | void,
     blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
     cursorPosition: number,

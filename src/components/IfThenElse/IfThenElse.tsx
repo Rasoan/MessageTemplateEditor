@@ -13,7 +13,7 @@ import "./IfThenElse.scss";
 
 interface IfThenElseProps {
     /** Путь к родительскому блоку (void 0 если самый первый ifThenElse) */
-    path?: IMessageTemplate.PathToBlock;
+    path?: IMessageTemplate.PathToBlock | void;
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
 }
@@ -38,7 +38,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
         <div className={"conditionalBlock__if conditionalBlockIf"}>
             <StickerForCondition content={'if'} />
             <MessageTemplateConditionEditor
-                pathToParentBlock={path}
+                path={path}
             />
         </div>
         <div className={"conditionalBlock__then conditionalBlockThen"}>
@@ -46,7 +46,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 <StickerForCondition content={'then'}/>
             </div>
             <MessageSnippetsBlock
-                pathToParentIfThenElseBlock={path}
+                path={path}
                 blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.THEN}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}
@@ -57,7 +57,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 <StickerForCondition content={'else'} />
             </div>
             <MessageSnippetsBlock
-                pathToParentIfThenElseBlock={path}
+                path={path}
                 blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE}
                 // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
                 countNested={countNested + 1}

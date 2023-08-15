@@ -18,7 +18,7 @@ interface MessageTemplateEditorProps {
     isCanSplit: boolean;
     blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
-    path?: IMessageTemplate.PathToBlock;
+    path?: IMessageTemplate.PathToBlock | void;
 }
 
 // todo: rename to MessageEditor
@@ -31,6 +31,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const [
         messageTemplate,
         message,
+        positionInResultMessage,
     ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
@@ -38,6 +39,10 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 path,
                 blockType,
             )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].message,
+            stateManager.state.messageTemplate.getBlockInformationForce(
+                path,
+                blockType,
+            )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].positionInResultMessage,
         ],
         shallow,
     );
@@ -72,6 +77,10 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     }, []);
 
     return <>
+        {
+            // todo: убрать дебажный span ниже
+        }
+        <span>positionInResultMessage: {positionInResultMessage}</span>
         <TextareaAutosize
             ref={ref}
             className={'messageTemplateEditor'}

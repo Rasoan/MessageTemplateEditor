@@ -19,6 +19,9 @@ import {
 } from "./types/MessageTemplate";
 import messageSnippetsBlock from "../../components/MessageSnippetsBlock/MessageSnippetsBlock";
 
+/** Количество добавляемых текстовых полей (THEN + ELSE). */
+const QUANTITY_NEW_FIELDS = 3;
+
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
     /** Первое и последнее (если разбили первое) поля для ввода текста */
@@ -139,11 +142,11 @@ export default class MessageTemplate {
             throw new Error('The current field is already broken!');
         }
 
-        for (const currentBlockIfThenElse of mapOfIfThenElseBlocks.values()) {
+        for (const currentIfThenElse of mapOfIfThenElseBlocks.values()) {
             const {
                 messageSnippets_THEN,
                 messageSnippets_ELSE,
-            } = currentBlockIfThenElse;
+            } = currentIfThenElse;
             const {
                 field: fieldBlock_then,
                 fieldAdditional: fieldAdditionalBlock_then,
@@ -154,20 +157,22 @@ export default class MessageTemplate {
             } = messageSnippets_ELSE;
 
             // поскольку поля добавились после разбитого, позицию предыдущих НЕ трогаем
-            if (fieldBlock_then.positionInResultMessage <= splitTarget_positionInResultMessage) {
-                continue;
-            }
+            {
+                if (fieldBlock_then.positionInResultMessage > splitTarget_positionInResultMessage) {
+                    fieldBlock_then.positionInResultMessage += QUANTITY_NEW_FIELDS;
+                }
 
-            // все поля после разбитого увеличиваем на 3, поскольку +3 новых поля (THEN/ELSE и часть разбитого поля) втиснулись
-            fieldBlock_then.positionInResultMessage = fieldBlock_then.positionInResultMessage + 3;
-            fieldBlock_else.positionInResultMessage = fieldBlock_else.positionInResultMessage + 3;
+                if (fieldAdditionalBlock_then?.positionInResultMessage > splitTarget_positionInResultMessage) {
+                    fieldAdditionalBlock_then.positionInResultMessage += QUANTITY_NEW_FIELDS;
+                }
 
-            if (fieldAdditionalBlock_then !== void 0) {
-                fieldAdditionalBlock_then.positionInResultMessage = fieldAdditionalBlock_then.positionInResultMessage + 3;
-            }
+                if (fieldBlock_else.positionInResultMessage > splitTarget_positionInResultMessage) {
+                    fieldBlock_else.positionInResultMessage += QUANTITY_NEW_FIELDS;
+                }
 
-            if (fieldAdditionalBlock_else !== void 0) {
-                fieldAdditionalBlock_else.positionInResultMessage = fieldAdditionalBlock_else.positionInResultMessage + 3;
+                if (fieldAdditionalBlock_else?.positionInResultMessage > splitTarget_positionInResultMessage) {
+                    fieldAdditionalBlock_else.positionInResultMessage += QUANTITY_NEW_FIELDS;
+                }
             }
         }
 
@@ -183,23 +188,13 @@ export default class MessageTemplate {
                 Дополнительное поле текущего блока после разбития текущего блока (на два) будет на 3 позже разбитого поля,
                 поскольку между ними появились 2 новых поля THEN/ELSE нового дочернего блока.
             */
-            positionInResultMessage: splitTarget_positionInResultMessage + 3,
+            positionInResultMessage: splitTarget_positionInResultMessage + QUANTITY_NEW_FIELDS,
             // это поле всегда false, опции разбить дополнительное поля нет (никогда).
             isCanSplit: false,
         };
 
-        this._defaultMessageSnippets.fieldAdditional.positionInResultMessage = this.countIfThenElseBlocks > 1
-            /*
-                При вставке первого IF_THEN_ELSE между основным и дополнительным полем
-                вставляется 2 поля (THEN + ELSE).
-             */
-            ? splitTarget_positionInResultMessage + 4
-            /*
-                При вставке 2-го,3,4...N-ного IF_THEN_ELSE между первым и последним (дополнительным от первого) полем
-                вставляется 3 поля (THEN + ELSE + дополнительное поле от разбитого).
-            */
-            : splitTarget_positionInResultMessage + 3
-        ;
+        /* При любом раскладе, это текстовое поле ВСЕГДА последнее. */
+        this._defaultMessageSnippets.fieldAdditional.positionInResultMessage = Infinity;
 
         // удалили вторую часть сообщения из разбитого поля
         splitTarget_field.message = splitTarget_message.slice(0, positionSplitterInSubMessage);
@@ -215,7 +210,7 @@ export default class MessageTemplate {
      * @param blockType - тип блока (void 0 если первый блок НЕ вложенный в ifThenElse)
      */
     public getBlockInformationForce(
-        pathToParentBlock?: IMessageTemplate.PathToBlock,
+        pathToParentBlock?: IMessageTemplate.PathToBlock | void,
         blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
     ): IMessageTemplate.MessageSnippets {
         if (blockType === void 0) {
@@ -242,7 +237,7 @@ export default class MessageTemplate {
      *
      * @param pathToParentBlock - путь к родительскому блоку (включая родителя) (void 0 если первый ifThenElse)
      */
-    public getDependencyVariableNameForce(pathToParentBlock?: IMessageTemplate.PathToBlock): string {
+    public getDependencyVariableNameForce(pathToParentBlock?: IMessageTemplate.PathToBlock | void): string {
         const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
 
         const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
@@ -294,7 +289,7 @@ export default class MessageTemplate {
             fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
             currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
             /** Путь к родительскому ifThenElse или void 0, если первый блок */
-            path?: IMessageTemplate.PathToBlock,
+            path?: IMessageTemplate.PathToBlock | void,
         },
     ) {
         const {
@@ -398,13 +393,13 @@ export default class MessageTemplate {
      * Сохранить данные переменной, которая будет отвечать за блок THEN/ELSE
      *
      * @param variableName - название переменной
-     * @param pathToParentBlock - путь к родительскому блоку (включая его самого) IF_THEN_ELSE {@link IMessageTemplate}
+     * @param path - путь к ifThenELse
      */
     public setDependencyVariable(
         variableName: string,
-        pathToParentBlock: IMessageTemplate.PathToBlock,
+        path?: IMessageTemplate.PathToBlock | void,
     ) {
-        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToParentBlock);
+        const key = MessageTemplate._createKeyForIfThenElseBlock(path);
 
         const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
 
@@ -425,7 +420,7 @@ export default class MessageTemplate {
      */
     private _createIfThenElseBlock(
         positionPreviousFieldInResultMessage: number,
-        path?: IMessageTemplate.PathToBlock,
+        path?: IMessageTemplate.PathToBlock | void,
     ) {
         const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(path);
 
@@ -552,18 +547,18 @@ export default class MessageTemplate {
 
                 return {
                     ifThenElseBlock: {
+                        path: _nullToVoid0(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path]),
+                        dependencyVariableName: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
                         messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
                         messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
-                        path: ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path],
-                        dependencyVariableName: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
                     },
                     key: ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key],
                 };
             }),
             lastBlurSnippetMessageInformation: {
+                pathToIfThenElseBlock: _nullToVoid0(lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock]),
+                blockType: _nullToVoid0(lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType]),
                 fieldType: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.fieldType],
-                pathToIfThenElseBlock: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock],
-                blockType: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType],
                 cursorPosition: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.cursorPosition],
             },
         };
@@ -573,37 +568,37 @@ export default class MessageTemplate {
      * Собрать родительский путь к новому дочернему блоку IF_THEN_ELSE
      *
      * @param currentBlockType - тип текущего блока (void 0 для самого первого блока (не IF_THEN_ELSE)
-     * @param pathToParentBlock - путь к родительскому блоку (включая его самого) IF_THEN_ELSE (void 0 или '' если это первый IF_THEN_ELSE) {@link IMessageTemplate}
+     * @param path - путь к родительскому блоку (включая его самого) IF_THEN_ELSE (void 0 если это первый IF_THEN_ELSE или самое первое поле) {@link IMessageTemplate}
      * @private
      */
     public static createPath(
         currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
-        pathToParentBlock: IMessageTemplate.PathToBlock = '' as IMessageTemplate.PathToBlock,
-    ): IMessageTemplate.PathToBlock {
+        path?: IMessageTemplate.PathToBlock | void,
+    ): IMessageTemplate.PathToBlock | void {
         // типа текущего блока не будет только в одном случае, если это самый первый блок (не IF_THEN_ELSE)
-        if (currentBlockType === void 0) {
-            return '' as IMessageTemplate.PathToBlock;
+        if (!currentBlockType) {
+            return;
         }
-        // если тип текущего блока есть, но путь к родительскому блоку пуст, значит это первый IF_THEN_ELSE
-        else if (pathToParentBlock === '') {
+        // если тип текущего блока есть, но путь отсутствует, значит это первый IF_THEN_ELSE
+        else if (!path) {
             return String(currentBlockType) as IMessageTemplate.PathToBlock;
         }
 
         // путь к новому IF_THEN_ELSE блоку внутри блока THEN
-        return `${pathToParentBlock}/${currentBlockType}` as IMessageTemplate.PathToBlock;
+        return `${path}/${currentBlockType}` as IMessageTemplate.PathToBlock;
     }
 
     /**
      * Генератор ключа для переменных или для подстроки результирующего сообщения
      *
-     * @param pathToParentBlock - путь к родительскому блоку (включая его самого) (если void 0, то это путь к первому ifThenElse)
+     * @param path - путь к родительскому блоку (включая его самого) (если void 0, то это путь к первому ifThenElse)
      * @private
      */
     private static _createKeyForIfThenElseBlock(
-        pathToParentBlock?: IMessageTemplate.PathToBlock,
+        path?: IMessageTemplate.PathToBlock | void,
     ): IMessageTemplate.KeyIfThenElseBlock {
-        const prefix = pathToParentBlock
-            ? pathToParentBlock
+        const prefix = path
+            ? path
             : ''
         ;
 
@@ -714,7 +709,7 @@ function _messageSnippetsDTOtoJSON(messageSnippetsDTO: MessageSnippetsDTO): IMes
     }
 
     return {
-        path: messageSnippetsDTO[MessageSnippetsDTO_Props.path],
+        path: _nullToVoid0(messageSnippetsDTO[MessageSnippetsDTO_Props.path]),
         field: fieldJSON,
         fieldAdditional: fieldAdditionalDTO
             ? {
@@ -736,5 +731,13 @@ function _normalizeString(dependencyVariableName?: string): string {
     return dependencyVariableName !== void 0 && dependencyVariableName !== null
         ? dependencyVariableName
         : ''
+    ;
+}
+
+
+function _nullToVoid0(value: any) {
+    return value !== null
+        ? value
+        : void 0
     ;
 }

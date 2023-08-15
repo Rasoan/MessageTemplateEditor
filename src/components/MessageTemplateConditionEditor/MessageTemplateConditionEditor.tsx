@@ -8,13 +8,14 @@ import {shallow} from "zustand/shallow";
 import {IMessageTemplate} from "../../utils/MessageTemplate/types/MessageTemplate";
 
 interface MessageTemplateConditionEditorProps {
-    pathToParentBlock: IMessageTemplate.PathToBlock,
+    /** Путь к ifThenElse */
+    path?: IMessageTemplate.PathToBlock | void,
 }
 
 // todo: rename to FieldForEditVariableName, Название параметров тоже переименовать
 const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorProps> = (props) => {
     const {
-        pathToParentBlock,
+        path,
     } = props;
     const [
         messageTemplate,
@@ -22,7 +23,7 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     ] = useBaseStore(stateManager =>
             [
                 stateManager.state.messageTemplate,
-                stateManager.state.messageTemplate.getDependencyVariableNameForce(pathToParentBlock),
+                stateManager.state.messageTemplate.getDependencyVariableNameForce(path),
             ],
         shallow,
     );
@@ -30,7 +31,7 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLInputElement>) => {
         messageTemplate.setDependencyVariable(
             onChangeEvent.currentTarget.value,
-            pathToParentBlock,
+            path,
         );
     };
 

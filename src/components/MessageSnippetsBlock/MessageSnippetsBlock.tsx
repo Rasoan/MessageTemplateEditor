@@ -19,15 +19,15 @@ import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 interface MessageSnippetsBlockProps {
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
-    /** Путь к родительскому блоку */
-    pathToParentIfThenElseBlock?: IMessageTemplate.PathToBlock,
+    /** Путь к родительскому ifThenElse блоку */
+    path?: IMessageTemplate.PathToBlock | void,
     /** Тип блока */
     blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
 }
 
 const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
     const {
-        pathToParentIfThenElseBlock,
+        path,
         blockType,
         countNested,
     } = props;
@@ -39,11 +39,11 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         shallow,
     );
     const blockInformation = messageTemplate.getBlockInformationForce(
-        pathToParentIfThenElseBlock,
+        path,
         blockType,
     );
     const {
-        path,
+        path: pathToCurrentBlock,
         field,
         fieldAdditional,
     } = blockInformation;
@@ -61,7 +61,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
     return <div>
         <MessageTemplateEditor
             isCanSplit={field_isCanSplit}
-            path={pathToParentIfThenElseBlock}
+            path={path}
             blockType={blockType}
             fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL}
         />
@@ -71,11 +71,11 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
                 ? <>
                     <IfThenElse
                         countNested={countNested}
-                        path={path}
+                        path={pathToCurrentBlock}
                     />
                     <MessageTemplateEditor
                         isCanSplit={fieldAdditional_isCanSplit}
-                        path={pathToParentIfThenElseBlock}
+                        path={path}
                         blockType={blockType}
                         fieldType={MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL}
                     />
