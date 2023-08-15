@@ -53,10 +53,10 @@ export default class MessageTemplate {
             for (const ifThenElseBlockInfoJSON of ifThenElseBlockInfoListJSON) {
                 const {
                     key: keyIfThenElseBlockJSON,
-                    ifThenElseBlockJSON,
+                    ifThenElseBlock,
                 } = ifThenElseBlockInfoJSON;
 
-                this._mapOfIfThenElseBlocks.set(keyIfThenElseBlockJSON, ifThenElseBlockJSON);
+                this._mapOfIfThenElseBlocks.set(keyIfThenElseBlockJSON, ifThenElseBlock);
             }
 
             return;
@@ -463,7 +463,7 @@ export default class MessageTemplate {
 
         for (const [keyIfThenElseBlock, ifThenElseBlock] of this._mapOfIfThenElseBlocks.entries()) {
             ifThenElseBlockInfoListJSON.push({
-                ifThenElseBlockJSON: ifThenElseBlock,
+                ifThenElseBlock,
                 key: keyIfThenElseBlock,
             });
         }
@@ -485,7 +485,7 @@ export default class MessageTemplate {
             defaultMessageSnippets
         } = messageTemplateJSON;
 
-        for (const { key: keyIfThenElseBlock, ifThenElseBlockJSON } of ifThenElseBlockInfoListJSON) {
+        for (const { key: keyIfThenElseBlock, ifThenElseBlock } of ifThenElseBlockInfoListJSON) {
             const ifThenElseBlockInfoDTO = new Array(IfThenElseBlockInfoDTO_Props.__SIZE__) as IfThenElseBlockInfoDTO;
 
             ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key] = keyIfThenElseBlock;
@@ -497,7 +497,7 @@ export default class MessageTemplate {
                 messageSnippets_ELSE,
                 path,
                 dependencyVariableName,
-            } = ifThenElseBlockJSON;
+            } = ifThenElseBlock;
 
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN] = _messageSnippetsJSONToDTO(messageSnippets_THEN);
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE] = _messageSnippetsJSONToDTO(messageSnippets_ELSE);
@@ -554,7 +554,7 @@ export default class MessageTemplate {
                 const ifThenElseBlockDTO: IfThenElseBlockDTO = ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO];
 
                 return {
-                    ifThenElseBlockJSON: {
+                    ifThenElseBlock: {
                         messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
                         messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
                         path: ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path],

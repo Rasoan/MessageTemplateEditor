@@ -102,7 +102,7 @@ export type IfThenElseBlockInfoDTO = [
 
 export interface IfThenElseBlockInfoJSON {
     key: IMessageTemplate.KeyIfThenElseBlock;
-    ifThenElseBlockJSON: IMessageTemplate.IfThenElseBlock;
+    ifThenElseBlock: IMessageTemplate.IfThenElseBlock;
 }
 
 export const enum IfThenElseBlockDTO_Props {
