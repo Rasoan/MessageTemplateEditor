@@ -50,7 +50,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             {
                 path,
                 currentBlockType: blockType,
-                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+                fieldType,
             }
         );
     };
@@ -59,7 +59,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             blockType,
             fieldType,
             pathToIfThenElseBlock: path,
-            cursorPosition: 3,
+            cursorPosition: 1,
         });
     };
 

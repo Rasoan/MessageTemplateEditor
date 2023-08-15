@@ -173,8 +173,7 @@ export default class MessageTemplate {
 
         this._createIfThenElseBlock(
             splitTarget_positionInResultMessage,
-            currentBlockType,
-            pathToIfThenElseBlock,
+            MessageTemplate.createPath(currentBlockType, pathToIfThenElseBlock),
         );
 
         messageSnippets_splitTarget.fieldAdditional = {
@@ -420,17 +419,15 @@ export default class MessageTemplate {
      * Создать IF_THEN_ELSE блок
      *
      * @param positionPreviousFieldInResultMessage - позиция в результирующем сообщении первой части разбитого на 2 field
-     * @param currentBlockType - тип текущего блока в который будет вложен новый IF_THEN_ELSE блок
-     * @param path - путь к родительскому блоку
+     * @param path - путь к создаваемому ifThenElse блоку
+     *
      * @private
      */
     private _createIfThenElseBlock(
         positionPreviousFieldInResultMessage: number,
-        currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE,
         path?: IMessageTemplate.PathToBlock,
     ) {
-        const parentPathForNewIfThenElseBlock = MessageTemplate.createPath(currentBlockType, path);
-        const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(parentPathForNewIfThenElseBlock);
+        const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(path);
 
         const newIfThenElseBlock: IMessageTemplate.IfThenElseBlock = {
             path,
