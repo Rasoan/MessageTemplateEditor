@@ -1,6 +1,18 @@
-//
-.messageTemplateEditor {
+.MessageTemplateEditor {
   resize: none;
   width: 100%;
   min-height: 50px;
+}
+
+/*
+  При наведении на кнопку разбития блоков (которая должна иметь css класс согласно условию в коде),
+  вешаем hover-эффект на все поля редактирования "частей" сообщения,
+  что бы пользователь понимал, можно ли разбить текущий блок или нет.
+ */
+.splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canSplit {
+  border: 5px solid green;
+}
+
+.splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canNotSplit {
+  border: 5px solid red;
 }

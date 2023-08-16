@@ -32,6 +32,10 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         messageTemplate,
         message,
         positionInResultMessage,
+        isCanSplit,
+        lastBlurSnippet_pathToIfThenElseBlock,
+        lastBlurSnippet_blockType,
+        lastBlurSnippet_fieldType,
     ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
@@ -43,6 +47,13 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 path,
                 blockType,
             )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].positionInResultMessage,
+            stateManager.state.messageTemplate.getBlockInformationForce(
+                path,
+                blockType,
+            )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].isCanSplit,
+            stateManager.state.messageTemplate.lastBlurSnippetMessageInformation.pathToIfThenElseBlock,
+            stateManager.state.messageTemplate.lastBlurSnippetMessageInformation.blockType,
+            stateManager.state.messageTemplate.lastBlurSnippetMessageInformation.fieldType,
         ],
         shallow,
     );
@@ -76,6 +87,17 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         };
     }, []);
 
+    let classBrokenIndicatorForHoverEffect: string;
+
+    if (
+        path === lastBlurSnippet_pathToIfThenElseBlock
+        && blockType === lastBlurSnippet_blockType
+        && fieldType === lastBlurSnippet_fieldType
+    ) {
+        // На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле)
+        classBrokenIndicatorForHoverEffect = `MessageTemplateEditor${isCanSplit ? '-canSplit' : '-canNotSplit'}`;
+    }
+
     return <>
         {
             // todo: убрать дебажный span ниже
@@ -83,7 +105,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         <span>positionInResultMessage: {positionInResultMessage}</span>
         <TextareaAutosize
             ref={ref}
-            className={'messageTemplateEditor'}
+            className={`MessageTemplateEditor ${classBrokenIndicatorForHoverEffect}`}
             value={message}
             onChange={onChangeField}
         />

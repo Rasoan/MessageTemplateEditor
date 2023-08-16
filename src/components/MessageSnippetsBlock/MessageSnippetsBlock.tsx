@@ -8,13 +8,11 @@ import IfThenElse from "../IfThenElse/IfThenElse";
 import {
     IMessageTemplate,
     MESSAGE_TEMPLATE_BLOCK_TYPE,
-    MESSAGE_TEMPLATE_FIELD_TYPE
 } from "../../utils/MessageTemplate/types/MessageTemplate";
 
 import "./MessageSnippetsBlock.scss";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
-import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 
 interface MessageSnippetsBlockProps {
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */

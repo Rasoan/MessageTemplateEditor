@@ -6,8 +6,9 @@ import StickerForCondition from "../StickerForCondition/StickerForCondition";
 import MessageSnippetsBlock from "../MessageSnippetsBlock/MessageSnippetsBlock";
 import useBaseStore from "../../store/store";
 
-import "./MessageTemplateEditorWidget.scss";
 import {shallow} from "zustand/shallow";
+
+import "./MessageTemplateEditorWidget.scss";
 
 const MessageTemplateEditorWidget: React.FC = () => {
     const [
@@ -28,9 +29,14 @@ const MessageTemplateEditorWidget: React.FC = () => {
         messageTemplate.splitFieldAndInsertIfThenElseBlock();
     };
 
-    return <div>
+    return <div
+        className={"MessageTemplateEditorWidget"}
+    >
         <h2>Message Template Editor</h2>
-        <button onClick={splitBlockAndInsertIfThenElse}>
+        <button
+            className={"splitterFields"}
+            onClick={splitBlockAndInsertIfThenElse}
+        >
             {
                 /*
                     &#123; - код кавычки "{"
@@ -51,9 +57,13 @@ const MessageTemplateEditorWidget: React.FC = () => {
             /> &#123;
             else value&#125;
         </button>
-        <MessageSnippetsBlock
-            countNested={1}
-        />
+        <div
+            className={"MessageTemplateEditorWidget__containerForSubMessages"}
+        >
+            <MessageSnippetsBlock
+                countNested={1}
+            />
+        </div>
         <button onClick={() => console.log(messageTemplate.getMessageSnippets())}>Save</button>
         <button onClick={() => {}}>Preview</button>
         <button onClick={() => toggleIsOpenMessageTemplateEditor(false)}>Close</button>
