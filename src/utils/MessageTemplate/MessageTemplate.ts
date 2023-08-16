@@ -1,6 +1,5 @@
 'use strict';
 
-import {KEY_POSTFIX_SUBSTRING} from "./constants";
 import {
     BlurSnippetMessageInformationDTO,
     BlurSnippetMessageInformationDTO_Props,
@@ -613,12 +612,7 @@ export default class MessageTemplate {
     private static _createKeyForIfThenElseBlock(
         path?: IMessageTemplate.PathToBlock | void,
     ): IMessageTemplate.KeyIfThenElseBlock {
-        const prefix = path
-            ? path
-            : ''
-        ;
-
-        return prefix + KEY_POSTFIX_SUBSTRING as IMessageTemplate.KeyIfThenElseBlock;
+        return (path ? path: '') as IMessageTemplate.KeyIfThenElseBlock;
     }
 
     public static checkMaxNestedIfThenElse(countNested: number) {
