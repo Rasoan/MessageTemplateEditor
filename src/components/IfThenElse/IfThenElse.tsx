@@ -14,6 +14,7 @@ import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
 
 import "./IfThenElse.scss";
+import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 
 interface IfThenElseProps {
     /** Путь к родительскому блоку (void 0 если самый первый ifThenElse) */
@@ -39,15 +40,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
         },
     } = ifThenElse;
 
-    if (countNested > MAX_RECURSION_OF_NESTED_BLOCKS) {
-        const textError = 'Превышен порог максимальной вложенности ifThenElse друг в друга, программа зациклилась!';
-
-        // todo: я бы сделал так, нужно поставить фиксатор на ограничение рекурсивной вложенности,
-        //  но поскольку этого в ТЗ нет, ограничусь console.error.
-        throw new Error(textError);
-
-        // console.error(textError);
-    }
+    MessageTemplate.checkMaxNestedIfThenElse(countNested);
 
     return <div className={"conditionalBlock"}>
         <div className={"conditionalBlock__if conditionalBlockIf"}>

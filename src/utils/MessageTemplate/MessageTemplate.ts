@@ -20,6 +20,7 @@ import {
     MessageTemplateDTO_Props,
     MessageTemplateJSON,
 } from "./types/MessageTemplate";
+import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../constants";
 
 /** Количество добавляемых текстовых полей (THEN + ELSE). */
 const QUANTITY_NEW_FIELDS = 3;
@@ -618,6 +619,18 @@ export default class MessageTemplate {
         ;
 
         return prefix + KEY_POSTFIX_SUBSTRING as IMessageTemplate.KeyIfThenElseBlock;
+    }
+
+    public static checkMaxNestedIfThenElse(countNested: number) {
+        if (countNested > MAX_RECURSION_OF_NESTED_BLOCKS) {
+            const textError = 'Превышен порог максимальной вложенности ifThenElse друг в друга, программа зациклилась!';
+
+            // todo: я бы сделал так, нужно поставить фиксатор на ограничение рекурсивной вложенности,
+            //  но поскольку этого в ТЗ нет, ограничусь console.error.
+            throw new Error(textError);
+
+            // console.error(textError);
+        }
     }
 }
 
