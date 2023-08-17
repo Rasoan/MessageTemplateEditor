@@ -29,7 +29,7 @@ export default class MessageTemplate {
     /** Первое и последнее (если разбили первое) поля для ввода текста */
     private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     private readonly _stateChangeNotify: Function;
-    private _lastBlurSnippetMessageInformation?: IMessageTemplate.BlurSnippetMessageInformation;
+    private _lastBlurSnippetMessageInformation: IMessageTemplate.BlurSnippetMessageInformation;
 
     /** map-а со значениями полей THEN и ELSE */
     private _mapOfIfThenElseBlocks = new Map<
@@ -77,10 +77,14 @@ export default class MessageTemplate {
                 positionInResultMessage: 0,
             },
         };
+        this._lastBlurSnippetMessageInformation = {
+            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+            cursorPosition: 0,
+        }
     }
 
     get lastBlurSnippetMessageInformation() {
-        return { ...this._lastBlurSnippetMessageInformation };
+        return this._lastBlurSnippetMessageInformation;
     }
 
     /** Количество IF_THEN_ELSE блоков */
@@ -463,6 +467,13 @@ export default class MessageTemplate {
         }
 
         this._mapOfIfThenElseBlocks.set(keyForNewIfThenElseBlock, newIfThenElseBlock);
+
+        this._lastBlurSnippetMessageInformation = {
+            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.THEN,
+            pathToIfThenElseBlock: newIfThenElseBlock.path,
+            cursorPosition: 0,
+        };
     }
 
     public toJSON(): MessageTemplateJSON {
@@ -541,6 +552,29 @@ export default class MessageTemplate {
         }
 
         return messageTemplateDTO;
+    }
+
+    /**
+     * Проверить текстовое поле на то, что последний раз курсор был именно в нём
+     *
+     * @param fieldType - тип текстового поля
+     * @param path - путь к блоку ifThenElse текстового поля
+     * @param blockType - тип блока в котором находится текстовое поле
+     */
+    public checkIsLastBlurField(
+        fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
+        path?: IMessageTemplate.PathToBlock | void,
+        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
+    ): boolean {
+        const {
+            fieldType: lastBlurSnippet_fieldType,
+            blockType: lastBlurSnippet_blockType,
+            pathToIfThenElseBlock: lastBlurSnippet_pathToIfThenElseBlock,
+        } = this._lastBlurSnippetMessageInformation;
+
+        return path === lastBlurSnippet_pathToIfThenElseBlock
+            && blockType === lastBlurSnippet_blockType
+            && fieldType === lastBlurSnippet_fieldType;
     }
 
     public static fromDTO(messageTemplateDTO: MessageTemplateDTO, stateChangeNotify: Function): MessageTemplate {

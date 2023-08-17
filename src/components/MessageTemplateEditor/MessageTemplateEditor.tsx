@@ -33,9 +33,6 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         message,
         positionInResultMessage,
         isCanSplit,
-        lastBlurSnippet_pathToIfThenElseBlock,
-        lastBlurSnippet_blockType,
-        lastBlurSnippet_fieldType,
     ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
@@ -60,9 +57,41 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
 
     const ref = useRef<HTMLTextAreaElement>(null);
 
+    const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(
+        fieldType,
+        path,
+        blockType,
+    );
+
+    useEffect(() => {
+        const {
+            lastBlurSnippetMessageInformation: { cursorPosition}
+        }  = messageTemplate;
+
+        if (isThisFieldLastBlur) {
+            const {
+                current,
+            } = ref;
+
+            if (current) {
+                current.focus();
+
+                current.selectionStart = cursorPosition;
+                current.selectionEnd = cursorPosition;
+            }
+        }
+    }, []);
+
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLTextAreaElement>) => {
+        const {
+            target,
+        } = onChangeEvent;
+        const {
+            value,
+        } = target as HTMLTextAreaElement;
+
         messageTemplate.setSnippetMessage(
-            onChangeEvent.currentTarget.value,
+            value,
             {
                 path,
                 currentBlockType: blockType,
@@ -70,30 +99,44 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             }
         );
     };
-    const onChangeCursorPosition = (onChangeCursorPositionEvent: KeyboardEvent) => {
+    const onKeyDown = (keyboardEvent: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        const {
+            target,
+        } = keyboardEvent;
+        const {
+            selectionStart,
+            selectionEnd,
+            selectionDirection,
+        } = target as HTMLTextAreaElement;
+
         messageTemplate.setLastBlurSnippetMessageInformation({
             blockType,
             fieldType,
             pathToIfThenElseBlock: path,
-            cursorPosition: 1,
+            cursorPosition: _calculateCursorPosition(selectionStart, selectionEnd, selectionDirection),
+        });
+    };
+    const onClick = (onClickEvent: React.MouseEvent<HTMLTextAreaElement>) => {
+        const {
+            target,
+        } = onClickEvent;
+        const {
+            selectionStart,
+            selectionEnd,
+            selectionDirection,
+        } = target as HTMLTextAreaElement;
+
+        messageTemplate.setLastBlurSnippetMessageInformation({
+            blockType,
+            fieldType,
+            pathToIfThenElseBlock: path,
+            cursorPosition: _calculateCursorPosition(selectionStart, selectionEnd, selectionDirection),
         });
     };
 
-    useEffect(() => {
-        ref.current?.addEventListener('keydown', onChangeCursorPosition);
-
-        return () => {
-            ref.current?.removeEventListener('keydown', onChangeCursorPosition);
-        };
-    }, []);
-
     let classBrokenIndicatorForHoverEffect: string;
 
-    if (
-        path === lastBlurSnippet_pathToIfThenElseBlock
-        && blockType === lastBlurSnippet_blockType
-        && fieldType === lastBlurSnippet_fieldType
-    ) {
+    if (isThisFieldLastBlur) {
         // На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле)
         classBrokenIndicatorForHoverEffect = `MessageTemplateEditor${isCanSplit ? '-canSplit' : '-canNotSplit'}`;
     }
@@ -105,6 +148,8 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         <span>positionInResultMessage: {positionInResultMessage}</span>
         <TextareaAutosize
             ref={ref}
+            onClick={onClick}
+            onKeyUp={onKeyDown}
             className={`MessageTemplateEditor ${classBrokenIndicatorForHoverEffect}`}
             value={message}
             onChange={onChangeField}
@@ -113,3 +158,34 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
 }
 
 export default MessageTemplateEditor;
+
+const enum SELECTION_DIRECTION {
+    /** Выделение вперёд */
+    Forward = "forward",
+    /** Выделение назад */
+    Backward = "backward",
+    None = "none",
+}
+
+function _calculateCursorPosition(selectionStart: number, selectionEnd: number, selectionDirection: string) {
+    switch (selectionDirection as SELECTION_DIRECTION) {
+        case SELECTION_DIRECTION.Forward: {
+            /*
+                Если мы, выделили текст слева на право "===>", наверняка мы надеемся,
+                что в левой части окажется всё,
+                что ДО выделения включая выделенный текст.
+             */
+            return selectionEnd;
+        }
+        case SELECTION_DIRECTION.Backward: {
+            /*
+                Если мы, выделили текст справа на лево "<===", наверняка мы надеемся,
+                что в левой части окажется всё,
+                что оказалось ПЕРЕД выделенным текстом НЕ включая выделенный текст
+             */
+            return selectionStart;
+        }
+    }
+
+    return selectionEnd;
+}

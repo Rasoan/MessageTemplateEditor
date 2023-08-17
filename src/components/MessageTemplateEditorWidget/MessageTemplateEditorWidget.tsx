@@ -26,7 +26,12 @@ const MessageTemplateEditorWidget: React.FC = () => {
     );
 
     const splitBlockAndInsertIfThenElse = () => {
-        messageTemplate.splitFieldAndInsertIfThenElseBlock();
+        try {
+            messageTemplate.splitFieldAndInsertIfThenElseBlock();
+        }
+        catch(error) {
+            alert(error);
+        }
     };
 
     return <div

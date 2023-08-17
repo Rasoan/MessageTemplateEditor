@@ -13,6 +13,7 @@ import {
 import "./MessageSnippetsBlock.scss";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
+import {useEffect} from "react";
 
 interface MessageSnippetsBlockProps {
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
