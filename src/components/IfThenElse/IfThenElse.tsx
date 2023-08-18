@@ -17,7 +17,9 @@ import "./IfThenElse.scss";
 import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 
 interface IfThenElseProps {
-    /** Путь к родительскому блоку (void 0 если самый первый ifThenElse) */
+    /**
+     * Путь к родительскому блоку (void 0 если самый первый ifThenElse), именно к родительскому блоку, а не к ifThenElse
+    */
     path?: IMessageTemplate.PathToBlock | void;
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
@@ -28,9 +30,22 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
         path,
         countNested,
     } = props;
-    const ifThenElse = useBaseStore(
-        (stateManager) => stateManager.state.messageTemplate.getIfThenElseForce(path),
+    const [
+        ifThenElse,
+        messageTemplate,
+    ] = useBaseStore(
+        (stateManager) => [
+            stateManager.state.messageTemplate.getIfThenElse(path),
+            stateManager.state.messageTemplate,
+        ],
+        shallow,
     );
+
+    // после удаления текущего ifThenElse он станет void 0
+    if (!ifThenElse) {
+        return <></>;
+    }
+
     const {
         messageSnippets_THEN: {
             blockType: blockTypeTHEN,
@@ -42,7 +57,12 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
 
     MessageTemplate.checkMaxNestedIfThenElse(countNested);
 
+    const undoBlockBreaking = () => {
+        messageTemplate.deleteIfThenElse(path);
+    }
+
     return <div className={"conditionalBlock"}>
+        <button onClick={undoBlockBreaking}>Delete</button>
         <div className={"conditionalBlock__if conditionalBlockIf"}>
             <StickerForCondition content={'if'} />
             <MessageTemplateConditionEditor

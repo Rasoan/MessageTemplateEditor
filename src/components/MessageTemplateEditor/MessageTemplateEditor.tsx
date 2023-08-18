@@ -80,7 +80,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 current.selectionEnd = cursorPosition;
             }
         }
-    }, []);
+    }, [ isCanSplit ]);
 
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLTextAreaElement>) => {
         const {

@@ -17,6 +17,12 @@ export namespace IMessageTemplate {
         messageSnippets_ELSE: MessageSnippets;
     }
 
+    /** Информация о родительском ifThenElse  */
+    interface ParentIfThenElseInfoForChildIfThenElseBlock {
+        path: PathToBlock | void,
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
+    }
+
     /** Информация о блоке THEN/ELSE или первом поле ввода */
     interface MessageSnippets {
         /** Исходное поле ввода текста в блоке */

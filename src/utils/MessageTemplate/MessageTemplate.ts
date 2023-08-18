@@ -215,12 +215,19 @@ export default class MessageTemplate {
      * Получить ifThenElse блок
      *
      * @param path - путь к ifThenElse блоку
+     * @param options
+     * @param options.force - если указали force, то вернёт или ifThenElse или ошибку выкинет, если не передать force, то может вернуть void 0
      */
-    public getIfThenElseForce(path?: IMessageTemplate.PathToBlock | void): IMessageTemplate.IfThenElseBlock {
+    public getIfThenElse(path?: IMessageTemplate.PathToBlock | void, options?: { force: boolean }): IMessageTemplate.IfThenElseBlock | void {
+        const {
+            force,
+        } = options || {};
         const key = MessageTemplate._createKeyForIfThenElseBlock(path);
         const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
 
-        _assertIsIfThenElseBlock(ifThenElseBlock);
+        if (force) {
+            _assertIsIfThenElseBlock(ifThenElseBlock);
+        }
 
         return ifThenElseBlock;
     }
@@ -239,7 +246,9 @@ export default class MessageTemplate {
             return this._defaultMessageSnippets;
         }
 
-        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this.getIfThenElseForce(pathToParentBlock);
+        const ifThenElseBlock = this
+            .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
+        ;
 
         switch (blockType) {
             case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
@@ -257,7 +266,9 @@ export default class MessageTemplate {
      * @param pathToParentBlock - путь к родительскому блоку (включая родителя) (void 0 если первый ifThenElse)
      */
     public getDependencyVariableNameForce(pathToParentBlock?: IMessageTemplate.PathToBlock | void): string {
-        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock = this.getIfThenElseForce(pathToParentBlock);
+        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock = this
+            .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
+        ;
 
         return ifThenElseBlock.dependencyVariableName;
     }
@@ -430,7 +441,6 @@ export default class MessageTemplate {
      *
      * @param positionPreviousFieldInResultMessage - позиция в результирующем сообщении первой части разбитого на 2 field
      * @param path - путь к создаваемому ifThenElse блоку
-     *
      * @private
      */
     private _createIfThenElseBlock(
@@ -474,6 +484,130 @@ export default class MessageTemplate {
             pathToIfThenElseBlock: newIfThenElseBlock.path,
             cursorPosition: 0,
         };
+    }
+
+    /**
+     * Получить массив с объектами в которых информация о родительских ifThenElse
+     *
+     * @param path - путь к ifThenElse для которого получаем информацию
+     */
+    public getAllParentsIfThenElseInfoByPath(path?: IMessageTemplate.PathToBlock | void): IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock[] {
+        // Для первого ifThenElse будет именно так
+        if (!path) {
+            return [];
+        }
+
+        const allParentsBlocks = path.split('/');
+        const parentIfThenElseInfoListForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock[] = [];
+
+        for (let index = allParentsBlocks.length - 1; index >= 0; index--) {
+            const lastParentBlockType = allParentsBlocks[index];
+
+            const path = allParentsBlocks.slice(0, allParentsBlocks.length - 1).join('/');
+            const parentIfThenElseInfoForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock = {
+                // не сохраняем пустой путь, путь или void 0, или хотя бы один блок должен быть в пути
+                path: path !== ''
+                    ? path as IMessageTemplate.PathToBlock
+                    : void 0,
+                blockType: Number(lastParentBlockType) as MESSAGE_TEMPLATE_BLOCK_TYPE,
+            };
+
+            allParentsBlocks.length--;
+            parentIfThenElseInfoListForChildIfThenElseBlock.push(parentIfThenElseInfoForChildIfThenElseBlock);
+        }
+
+        // восстановим очередность путей
+        return parentIfThenElseInfoListForChildIfThenElseBlock.reverse();
+    }
+
+    /**
+     * Получить ближайший родительский ifThenElse
+     *
+     * @param path - путь к ifThenElse для которого получаем информацию
+     */
+    public getParentIfThenElseInfoByPath(path?: IMessageTemplate.PathToBlock | void): IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock | void {
+        const allParentsIfThenElseInfoByPath = this.getAllParentsIfThenElseInfoByPath(path)
+
+        // последний ifThenElse в массиве будет ближайшим родителем
+        return allParentsIfThenElseInfoByPath[allParentsIfThenElseInfoByPath.length - 1];
+    }
+
+    /**
+     *
+     * @param path - путь к ifThenElse который удаляем
+     */
+    public deleteIfThenElse(path?: IMessageTemplate.PathToBlock | void) {
+        const keyOfIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(path);
+
+        this._mapOfIfThenElseBlocks.delete(keyOfIfThenElseBlock);
+
+        const parentIfThenElseInfo: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock | void = this.getParentIfThenElseInfoByPath(path);
+        if (parentIfThenElseInfo) {
+            const {
+                path: pathToParentIfThenElse,
+                blockType,
+            } = parentIfThenElseInfo;
+            const parentIfThenElse = this.getIfThenElse(pathToParentIfThenElse, { force: true }) as IMessageTemplate.IfThenElseBlock;
+            const block = blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+                ? parentIfThenElse.messageSnippets_THEN
+                : parentIfThenElse.messageSnippets_ELSE
+            ;
+            const {
+                field,
+                fieldAdditional,
+            } = block;
+            const {
+                fieldType,
+                message,
+            } = field;
+            const {
+                message: message_fieldAdditional,
+            } = fieldAdditional;
+
+            block.field = {
+                ...block.field,
+                isCanSplit: true,
+                message: message + message_fieldAdditional,
+            }
+
+            this._lastBlurSnippetMessageInformation = {
+                fieldType,
+                blockType,
+                cursorPosition: message.length,
+                pathToIfThenElseBlock: pathToParentIfThenElse,
+            };
+
+            block.fieldAdditional = void 0;
+        }
+        else {
+            const block = this._defaultMessageSnippets;
+            const {
+                field,
+                fieldAdditional,
+            } = block;
+            const {
+                fieldType,
+                message,
+            } = field;
+            const {
+                message: message_fieldAdditional,
+            } = fieldAdditional;
+
+            block.field = {
+                ...block.field,
+                isCanSplit: true,
+                message: message + message_fieldAdditional,
+            }
+
+            this._lastBlurSnippetMessageInformation = {
+                fieldType,
+                cursorPosition: message.length,
+            };
+
+            block.fieldAdditional = void 0;
+        }
+
+        this._stateChangeNotify();
     }
 
     public toJSON(): MessageTemplateJSON {
