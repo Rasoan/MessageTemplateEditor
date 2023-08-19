@@ -34,6 +34,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         message,
         positionInResultMessage,
         isCanSplit,
+        insertedVariablesVersion,
     ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
@@ -49,6 +50,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 path,
                 blockType,
             )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].isCanSplit,
+            stateManager.state.messageTemplate.lastBlurInformation?.insertedVariablesVersion,
             stateManager.state.messageTemplate.lastBlurInformation.pathToIfThenElseBlock,
             stateManager.state.messageTemplate.lastBlurInformation?.snippetMessageInformation?.fieldType,
             stateManager.state.messageTemplate.lastBlurInformation?.snippetMessageInformation?.blockType,
@@ -64,6 +66,12 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         blockType,
     );
 
+    /*
+        Курсор выставляем в 3 случаях:
+         - при первом рендере компонеты выставить курсор (если здесь он был в предыдущей загрузке страницы);
+         - если удалили ifThenElse, то кинем курсор в родительский блок
+         - после вставки переменной в текстовое поле вернём ему курсор.
+     */
     useEffect(() => {
         const {
             lastBlurInformation: {
@@ -83,7 +91,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 current.selectionEnd = cursorPosition;
             }
         }
-    }, [ isCanSplit ]);
+    }, [ isCanSplit, insertedVariablesVersion ]);
 
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLTextAreaElement>) => {
         const {

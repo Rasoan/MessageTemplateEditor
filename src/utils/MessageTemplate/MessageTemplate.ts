@@ -32,6 +32,12 @@ export default class MessageTemplate {
     private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     private readonly _stateChangeNotify: Function;
     private _lastBlurInformation: IMessageTemplate.LastBlurInformation;
+    private _variables = new Map<string, string>([
+        ['firstname', ''],
+        ['lastname', ''],
+        ['company', ''],
+        ['position', ''],
+    ]);
 
     /** map-а со значениями полей THEN и ELSE */
     private _mapOfIfThenElseBlocks = new Map<
@@ -83,7 +89,8 @@ export default class MessageTemplate {
             cursorPosition: 0,
             snippetMessageInformation: {
                 fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-            }
+            },
+            insertedVariablesVersion: 0,
         }
     }
 
@@ -96,8 +103,142 @@ export default class MessageTemplate {
         return this._mapOfIfThenElseBlocks.size;
     }
 
-    public setLastBlurInformation(blurSnippetMessageInformation: IMessageTemplate.LastBlurInformation) {
-        this._lastBlurInformation = blurSnippetMessageInformation;
+    /** Массив названий переменных */
+    get variables() {
+        return [ ...this._variables.keys() ];
+    }
+
+    public insertVariableInSubMessage(variable: string) {
+        const variableWithModifier = `{${variable}}`;
+        const {
+            _lastBlurInformation: lastBlurInformation,
+        } = this;
+        const {
+            pathToIfThenElseBlock,
+            cursorPosition: lastBlur_cursorPosition,
+            snippetMessageInformation: lastBlur_snippetMessageInformation,
+        } = lastBlurInformation;
+        const {
+            blockType: lastBlur_blockType,
+            fieldType: lastBlur_fieldType,
+        } = lastBlur_snippetMessageInformation || {};
+
+        if (
+            // если тип блока есть, то это ifThenElse
+            lastBlur_blockType
+            // если типа поля нет, то это IF у ifThenElse
+            || !lastBlur_fieldType
+        ) {
+            const ifThenElse = this.getIfThenElse(
+                pathToIfThenElseBlock,
+                { force: true }
+            ) as IMessageTemplate.IfThenElseBlock;
+            const {
+                fieldType: lastBlur_fieldType,
+                blockType: lastBlur_blockType,
+            } = lastBlur_snippetMessageInformation || {};
+            const {
+                messageSnippets_THEN,
+                messageSnippets_ELSE,
+            } = ifThenElse;
+
+            // если типа поля нет, то это IF у ifThenElse
+            if (!lastBlur_fieldType) {
+                ifThenElse.dependencyVariableName = insertSubstringInString(
+                    ifThenElse.dependencyVariableName,
+                    variableWithModifier,
+                    lastBlur_cursorPosition
+                );
+            }
+            else if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
+                const {
+                    field,
+                    fieldAdditional,
+                } = messageSnippets_THEN;
+
+                if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
+                    field.message = insertSubstringInString(
+                        field.message,
+                        variableWithModifier,
+                        lastBlur_cursorPosition,
+                    );
+                }
+                else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
+                    fieldAdditional.message = insertSubstringInString(
+                        fieldAdditional.message,
+                        variableWithModifier,
+                        lastBlur_cursorPosition,
+                    );
+                }
+                else {
+                    throw new Error('Unknown block!');
+                }
+            }
+            else if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
+                const {
+                    field,
+                    fieldAdditional,
+                } = messageSnippets_ELSE;
+
+                if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
+                    field.message = insertSubstringInString(
+                        field.message,
+                        variableWithModifier,
+                        lastBlur_cursorPosition
+                    );
+                }
+                else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
+                    fieldAdditional.message = insertSubstringInString(
+                        fieldAdditional.message,
+                        variableWithModifier,
+                        lastBlur_cursorPosition,
+                    );
+                }
+                else {
+                    throw new Error('Unknown block!');
+                }
+            }
+            else {
+                throw new Error('Unknown block!');
+            }
+        }
+        // если тип блока не найден, то это первый блок не входящий в ifThenElse и сам не являющийся ifThenElse
+        else {
+            const {
+                _defaultMessageSnippets: defaultMessageSnippets,
+            } = this;
+            const {
+                field,
+                fieldAdditional,
+            } = defaultMessageSnippets;
+
+            if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
+                field.message = insertSubstringInString(field.message, variableWithModifier, lastBlur_cursorPosition);
+            }
+            else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
+                fieldAdditional.message = insertSubstringInString(
+                    fieldAdditional.message,
+                    variableWithModifier,
+                    lastBlur_cursorPosition,
+                );
+            }
+            else {
+                throw new Error('Unknown block!');
+            }
+        }
+
+        lastBlurInformation.cursorPosition += variableWithModifier.length;
+        lastBlurInformation.insertedVariablesVersion++;
+
+        this._stateChangeNotify();
+    }
+
+    public setLastBlurInformation(blurSnippetMessageInformation: Omit<IMessageTemplate.LastBlurInformation, 'insertedVariablesVersion'>) {
+        this._lastBlurInformation = {
+            ...blurSnippetMessageInformation,
+            // версию нельзя изменять снаружи, только изнутри и специально для выставления фокуса в поле
+            insertedVariablesVersion: this._lastBlurInformation.insertedVariablesVersion,
+        };
 
         this._stateChangeNotify();
     }
@@ -492,6 +633,7 @@ export default class MessageTemplate {
         this._lastBlurInformation = {
             pathToIfThenElseBlock: newIfThenElseBlock.path,
             cursorPosition: 0,
+            insertedVariablesVersion: 0,
         };
     }
 
@@ -586,6 +728,7 @@ export default class MessageTemplate {
                     blockType,
                     fieldType,
                 },
+                insertedVariablesVersion: 0,
             };
 
             block.fieldAdditional = void 0;
@@ -614,7 +757,8 @@ export default class MessageTemplate {
                 cursorPosition: message.length,
                 snippetMessageInformation: {
                     fieldType,
-                }
+                },
+                insertedVariablesVersion: 0,
             };
 
             block.fieldAdditional = void 0;
@@ -684,6 +828,7 @@ export default class MessageTemplate {
                 pathToIfThenElseBlock,
                 cursorPosition,
                 snippetMessageInformation,
+                insertedVariablesVersion,
             } = lastBlurInformation;
 
             const lastBlurInformationDTO = new Array(LastBlurInformationDTO_Props.__SIZE__) as LastBlurInformationDTO;
@@ -704,6 +849,7 @@ export default class MessageTemplate {
 
             lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition] = cursorPosition;
             lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
+            lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion] = insertedVariablesVersion;
 
             messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = lastBlurInformationDTO;
         }
@@ -732,7 +878,21 @@ export default class MessageTemplate {
             blockType: lastBlurSnippet_blockType,
         } = snippetMessageInformation || {};
 
-        if (fieldType === void 0) {
+        if (
+            // если у последнего выделенного поля нет типа этого поля, то это точно IF, а значит проверяем только путь
+            fieldType === void 0
+            /*
+                Но и у If так же нет типа поля, значит проверим, что выделен был именно IF.
+
+                Итого, проверяем на if ТОЛЬКО в том случае если САМО поле проверяющее является IF
+                И если выделенным последнее поле было IF
+
+                В целом, да, нужно было добавить тип для поля IF, что бы на это можно было проверять, но переделывать уже не буду,
+                но если бы проект был боевым, то да, надо бы переделать это место, проверка на void 0 стала какой-то слишком умной и
+                замудрённой.
+             */
+            && lastBlurSnippet_fieldType === void 0
+        ) {
             return path === lastBlurSnippet_pathToIfThenElseBlock;
         }
 
@@ -778,6 +938,7 @@ export default class MessageTemplate {
                         blockType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType]),
                     }
                     : void 0,
+                insertedVariablesVersion: lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion],
             },
         };
     }
@@ -974,4 +1135,12 @@ function _nullToVoid0(value: any) {
         ? value
         : void 0
     ;
+}
+
+function insertSubstringInString(text: string, subText: string, position: number): string {
+    const splitTextArray = text.split('');
+
+    splitTextArray.splice(position, 0, subText);
+
+    return splitTextArray.join('');
 }

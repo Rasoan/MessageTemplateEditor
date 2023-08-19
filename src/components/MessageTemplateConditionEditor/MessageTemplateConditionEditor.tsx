@@ -22,10 +22,12 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     const [
         messageTemplate,
         variableName,
+        insertedVariablesVersion,
     ] = useBaseStore(stateManager =>
             [
                 stateManager.state.messageTemplate,
                 stateManager.state.messageTemplate.getDependencyVariableNameForce(path),
+                stateManager.state.messageTemplate.lastBlurInformation?.insertedVariablesVersion,
             ],
         shallow,
     );
@@ -33,6 +35,11 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(path);
     const ref = useRef<HTMLInputElement>(null);
 
+    /*
+        Курсор выставляем в 2 случаях:
+         - при первом рендере компонеты выставить курсор (если здесь он был в предыдущей загрузке страницы);
+         - после вставки переменной в текстовое поле вернём ему курсор.
+    */
     useEffect(() => {
         const {
             lastBlurInformation: {
@@ -52,7 +59,7 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
                 current.selectionEnd = cursorPosition;
             }
         }
-    }, []);
+    }, [ insertedVariablesVersion ]);
 
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLInputElement>) => {
         messageTemplate.setDependencyVariable(

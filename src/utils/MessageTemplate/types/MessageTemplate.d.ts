@@ -53,6 +53,12 @@ export namespace IMessageTemplate {
         pathToIfThenElseBlock?: IMessageTemplate.PathToBlock | void;
         /** void 0 если выделили field от IF */
         snippetMessageInformation?: LastBlurSnippetMessageInformation;
+        /**
+         * При вставке переменной в текстовое поле версия обновится,
+         * что бы текстовое поле узнало о том,
+         * что была вставлена переменная и сработал focus().
+         */
+        insertedVariablesVersion: number;
     }
 
     interface LastBlurSnippetMessageInformation {
@@ -192,14 +198,16 @@ export type LastBlurSnippetMessageInformationDTO = [
 export const enum LastBlurInformationDTO_Props {
     pathToIfThenElseBlock = 0,
     cursorPosition = 1,
-    snippetMessageInformationDTO = 2,
+    insertedVariablesVersion = 2,
+    snippetMessageInformationDTO = 3,
 
-    __SIZE__ = 3
+    __SIZE__ = 4
 }
 
 export type LastBlurInformationDTO = [
     pathToIfThenElseBlock: IMessageTemplate.PathToBlock | void,
     cursorPosition: number,
+    insertedVariablesVersion: number,
     snippetMessageInformationDTO?: LastBlurSnippetMessageInformationDTO | void,
 ];
 
@@ -214,3 +222,15 @@ export interface MessageTemplateJSON {
     defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     lastBlurInformation: IMessageTemplate.LastBlurInformation;
 }
+
+export const enum VariableInfoDTO_Props {
+    key = 0,
+    value = 1,
+
+    __SIZE__ = 2
+}
+
+export type VariableInfoDTO = [
+    key: string,
+    value: string,
+]

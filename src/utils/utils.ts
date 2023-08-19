@@ -56,7 +56,7 @@ export function onKeyDown_or_mouseClick<
         selectionDirection,
     } = target as TI;
 
-    const lastBlurInformation: IMessageTemplate.LastBlurInformation = {
+    const lastBlurInformation: Omit<IMessageTemplate.LastBlurInformation, 'insertedVariablesVersion'> = {
         pathToIfThenElseBlock: path,
         cursorPosition: _calculateCursorPosition(
             selectionStart as number,

@@ -24,6 +24,23 @@ const MessageTemplateEditorWidget: React.FC = () => {
         ],
         shallow,
     );
+    const onClickOnVariable = (event: React.MouseEvent<HTMLButtonElement>) => {
+        const {
+            currentTarget,
+        } = event;
+        const {
+            value,
+        } = currentTarget;
+
+        messageTemplate.insertVariableInSubMessage(value);
+    }
+    const variables = messageTemplate.variables.map((variableName, index) => <button
+        key={variableName + index}
+        value={variableName}
+        onClick={onClickOnVariable}
+    >
+        {`{${variableName}}`}
+    </button>);
 
     const splitBlockAndInsertIfThenElse = () => {
         try {
@@ -38,6 +55,9 @@ const MessageTemplateEditorWidget: React.FC = () => {
         className={"MessageTemplateEditorWidget"}
     >
         <h2>Message Template Editor</h2>
+        <div>
+            {variables}
+        </div>
         <button
             className={"splitterFields"}
             onClick={splitBlockAndInsertIfThenElse}
