@@ -6,6 +6,8 @@ import "./MessageTemplateConditionEditor.scss";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
 import {IMessageTemplate} from "../../utils/MessageTemplate/types/MessageTemplate";
+import {onKeyDown_or_mouseClick} from "../../utils/utils";
+import {useEffect, useRef} from "react";
 
 interface MessageTemplateConditionEditorProps {
     /** Путь к ifThenElse */
@@ -28,6 +30,30 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
         shallow,
     );
 
+    const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(path);
+    const ref = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const {
+            lastBlurInformation: {
+                cursorPosition,
+            },
+        }  = messageTemplate;
+
+        if (isThisFieldLastBlur) {
+            const {
+                current,
+            } = ref;
+
+            if (current) {
+                current.focus();
+
+                current.selectionStart = cursorPosition;
+                current.selectionEnd = cursorPosition;
+            }
+        }
+    }, []);
+
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLInputElement>) => {
         messageTemplate.setDependencyVariable(
             onChangeEvent.currentTarget.value,
@@ -35,10 +61,29 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
         );
     };
 
+    const onClick = (onClickEvent: React.MouseEvent<HTMLInputElement>) => {
+        onKeyDown_or_mouseClick<HTMLInputElement, React.MouseEvent<HTMLInputElement>>(
+            onClickEvent,
+            messageTemplate,
+            path,
+        );
+    };
+
+    const onKeyUp = (KeyboardEvent: React.KeyboardEvent<HTMLInputElement>) => {
+        onKeyDown_or_mouseClick<HTMLInputElement, React.KeyboardEvent<HTMLInputElement>>(
+            KeyboardEvent,
+            messageTemplate,
+            path,
+        );
+    };
+
     return <>
         <input
+            ref={ref}
             className={'messageTemplateConditionEditor'}
             value={variableName}
+            onClick={(Event) => onClick(Event)}
+            onKeyUp={(Event) => onKeyUp(Event)}
             onChange={onChangeField}
         />
     </>;

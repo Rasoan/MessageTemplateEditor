@@ -47,12 +47,18 @@ export namespace IMessageTemplate {
         isCanSplit: boolean;
     }
 
-    interface BlurSnippetMessageInformation {
+    interface LastBlurInformation {
+        cursorPosition: number;
         /** Путь к родительскому блоку ifThenElse выделенного field */
         pathToIfThenElseBlock?: IMessageTemplate.PathToBlock | void;
-        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
+        /** void 0 если выделили field от IF */
+        snippetMessageInformation?: LastBlurSnippetMessageInformation;
+    }
+
+    interface LastBlurSnippetMessageInformation {
         fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
-        cursorPosition: number;
+        /** void 0 если это самый первый блок */
+        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
     }
 
     /** Дополнительное (после разбития исходного поля отображается) поле ввода текста в блоке */
@@ -169,30 +175,42 @@ export const enum MessageTemplateDTO_Props {
     __SIZE__ = 3,
 }
 
-export const enum BlurSnippetMessageInformationDTO_Props {
-    pathToIfThenElseBlock = 0,
+export const enum LastBlurSnippetMessageInformationDTO_Props {
+    fieldType = 0,
+    /** void 0 если это самый первый блок */
     blockType = 1,
-    fieldType = 2,
-    cursorPosition = 3,
 
-    __SIZE__ = 4
+    __SIZE__ = 2
 }
 
-export type BlurSnippetMessageInformationDTO = [
-    pathToIfThenElseBlock: IMessageTemplate.PathToBlock | void,
-    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
+export type LastBlurSnippetMessageInformationDTO = [
     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
-    cursorPosition: number,
+    /** void 0 если это самый первый блок */
+    blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
 ]
+
+export const enum LastBlurInformationDTO_Props {
+    pathToIfThenElseBlock = 0,
+    cursorPosition = 1,
+    snippetMessageInformationDTO = 2,
+
+    __SIZE__ = 3
+}
+
+export type LastBlurInformationDTO = [
+    pathToIfThenElseBlock: IMessageTemplate.PathToBlock | void,
+    cursorPosition: number,
+    snippetMessageInformationDTO?: LastBlurSnippetMessageInformationDTO | void,
+];
 
 export type MessageTemplateDTO = [
     ifThenElseDTOList: IfThenElseBlockInfoDTO[],
     defaultMessageSnippets: MessageSnippetsDTO,
-    lastBlurSnippetMessageInformation: BlurSnippetMessageInformationDTO,
+    lastBlurInformation: LastBlurInformationDTO,
 ];
 
 export interface MessageTemplateJSON {
     ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[];
     defaultMessageSnippets: IMessageTemplate.MessageSnippets;
-    lastBlurSnippetMessageInformation: IMessageTemplate.BlurSnippetMessageInformation;
+    lastBlurInformation: IMessageTemplate.LastBlurInformation;
 }

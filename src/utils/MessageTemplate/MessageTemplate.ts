@@ -1,14 +1,16 @@
 'use strict';
 
 import {
-    BlurSnippetMessageInformationDTO,
-    BlurSnippetMessageInformationDTO_Props,
     IfThenElseBlockDTO,
     IfThenElseBlockDTO_Props,
     IfThenElseBlockInfoDTO,
     IfThenElseBlockInfoDTO_Props,
     IfThenElseBlockInfoJSON,
     IMessageTemplate,
+    LastBlurInformationDTO,
+    LastBlurInformationDTO_Props,
+    LastBlurSnippetMessageInformationDTO,
+    LastBlurSnippetMessageInformationDTO_Props,
     MESSAGE_TEMPLATE_BLOCK_TYPE,
     MESSAGE_TEMPLATE_FIELD_TYPE,
     MessageFieldDetailsDTO,
@@ -29,7 +31,7 @@ export default class MessageTemplate {
     /** Первое и последнее (если разбили первое) поля для ввода текста */
     private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     private readonly _stateChangeNotify: Function;
-    private _lastBlurSnippetMessageInformation: IMessageTemplate.BlurSnippetMessageInformation;
+    private _lastBlurInformation: IMessageTemplate.LastBlurInformation;
 
     /** map-а со значениями полей THEN и ELSE */
     private _mapOfIfThenElseBlocks = new Map<
@@ -48,12 +50,12 @@ export default class MessageTemplate {
         if (messageTemplateJSON !== void 0) {
             const {
                 ifThenElseBlockInfoListJSON,
-                lastBlurSnippetMessageInformation,
+                lastBlurInformation,
                 defaultMessageSnippets,
             } = messageTemplateJSON;
 
             this._defaultMessageSnippets = defaultMessageSnippets;
-            this._lastBlurSnippetMessageInformation = lastBlurSnippetMessageInformation;
+            this._lastBlurInformation = lastBlurInformation;
 
             for (const ifThenElseBlockInfoJSON of ifThenElseBlockInfoListJSON) {
                 const {
@@ -77,14 +79,16 @@ export default class MessageTemplate {
                 positionInResultMessage: 0,
             },
         };
-        this._lastBlurSnippetMessageInformation = {
-            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+        this._lastBlurInformation = {
             cursorPosition: 0,
+            snippetMessageInformation: {
+                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+            }
         }
     }
 
-    get lastBlurSnippetMessageInformation() {
-        return this._lastBlurSnippetMessageInformation;
+    get lastBlurInformation() {
+        return this._lastBlurInformation;
     }
 
     /** Количество IF_THEN_ELSE блоков */
@@ -92,8 +96,8 @@ export default class MessageTemplate {
         return this._mapOfIfThenElseBlocks.size;
     }
 
-    public setLastBlurSnippetMessageInformation(blurSnippetMessageInformation: IMessageTemplate.BlurSnippetMessageInformation) {
-        this._lastBlurSnippetMessageInformation = blurSnippetMessageInformation;
+    public setLastBlurInformation(blurSnippetMessageInformation: IMessageTemplate.LastBlurInformation) {
+        this._lastBlurInformation = blurSnippetMessageInformation;
 
         this._stateChangeNotify();
     }
@@ -103,19 +107,26 @@ export default class MessageTemplate {
      */
     public splitFieldAndInsertIfThenElseBlock() {
         const {
-            _lastBlurSnippetMessageInformation: lastBlurSnippetMessageInformation,
+            _lastBlurInformation: lastBlurInformation,
         } = this;
 
-        if (lastBlurSnippetMessageInformation === void 0) {
+        if (lastBlurInformation === void 0) {
             throw new Error('Can\'t split unknown block!');
         }
 
         const {
-            fieldType,
-            blockType: currentBlockType,
             pathToIfThenElseBlock,
             cursorPosition: positionSplitterInSubMessage,
-        } = lastBlurSnippetMessageInformation;
+            snippetMessageInformation,
+        } = lastBlurInformation;
+        const {
+            fieldType,
+            blockType: currentBlockType,
+        } = snippetMessageInformation || {};
+
+        if (!snippetMessageInformation) {
+            throw new Error('Can\'t split conditional block "IF"!');
+        }
 
         if (fieldType !== MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
             throw new Error('Can split only initial block!');
@@ -478,9 +489,7 @@ export default class MessageTemplate {
 
         this._mapOfIfThenElseBlocks.set(keyForNewIfThenElseBlock, newIfThenElseBlock);
 
-        this._lastBlurSnippetMessageInformation = {
-            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.THEN,
+        this._lastBlurInformation = {
             pathToIfThenElseBlock: newIfThenElseBlock.path,
             cursorPosition: 0,
         };
@@ -570,11 +579,13 @@ export default class MessageTemplate {
                 message: message + message_fieldAdditional,
             }
 
-            this._lastBlurSnippetMessageInformation = {
-                fieldType,
-                blockType,
+            this._lastBlurInformation = {
                 cursorPosition: message.length,
                 pathToIfThenElseBlock: pathToParentIfThenElse,
+                snippetMessageInformation: {
+                    blockType,
+                    fieldType,
+                },
             };
 
             block.fieldAdditional = void 0;
@@ -599,9 +610,11 @@ export default class MessageTemplate {
                 message: message + message_fieldAdditional,
             }
 
-            this._lastBlurSnippetMessageInformation = {
-                fieldType,
+            this._lastBlurInformation = {
                 cursorPosition: message.length,
+                snippetMessageInformation: {
+                    fieldType,
+                }
             };
 
             block.fieldAdditional = void 0;
@@ -622,7 +635,7 @@ export default class MessageTemplate {
 
         return {
             ifThenElseBlockInfoListJSON,
-            lastBlurSnippetMessageInformation: this._lastBlurSnippetMessageInformation,
+            lastBlurInformation: this._lastBlurInformation,
             defaultMessageSnippets: this._defaultMessageSnippets,
         }
     }
@@ -633,7 +646,7 @@ export default class MessageTemplate {
         const ifThenElseDTOList: IfThenElseBlockInfoDTO[] = [];
         const {
             ifThenElseBlockInfoListJSON,
-            lastBlurSnippetMessageInformation,
+            lastBlurInformation,
             defaultMessageSnippets
         } = messageTemplateJSON;
 
@@ -666,23 +679,33 @@ export default class MessageTemplate {
         messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList] = ifThenElseDTOList;
         messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets] = _messageSnippetsJSONToDTO(defaultMessageSnippets);
 
-        // blurSnippetMessageInformationDTO
-        if (lastBlurSnippetMessageInformation !== void 0) {
+        if (lastBlurInformation !== void 0) {
             const {
-                fieldType,
-                blockType,
                 pathToIfThenElseBlock,
                 cursorPosition,
-            } = lastBlurSnippetMessageInformation;
+                snippetMessageInformation,
+            } = lastBlurInformation;
 
-            const blurSnippetMessageInformationDTO = new Array(BlurSnippetMessageInformationDTO_Props.__SIZE__) as BlurSnippetMessageInformationDTO;
+            const lastBlurInformationDTO = new Array(LastBlurInformationDTO_Props.__SIZE__) as LastBlurInformationDTO;
 
-            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType] = blockType;
-            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.fieldType] = fieldType;
-            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.cursorPosition] = cursorPosition;
-            blurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
+            if (snippetMessageInformation) {
+                const {
+                    fieldType,
+                    blockType,
+                } = snippetMessageInformation;
 
-            messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = blurSnippetMessageInformationDTO;
+                const lastBlurSnippetMessageInformationDTO = new Array(LastBlurSnippetMessageInformationDTO_Props.__SIZE__) as LastBlurSnippetMessageInformationDTO;
+
+                lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType] = blockType;
+                lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType] = fieldType;
+
+                lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO] = lastBlurSnippetMessageInformationDTO;
+            }
+
+            lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition] = cursorPosition;
+            lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
+
+            messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = lastBlurInformationDTO;
         }
 
         return messageTemplateDTO;
@@ -691,20 +714,27 @@ export default class MessageTemplate {
     /**
      * Проверить текстовое поле на то, что последний раз курсор был именно в нём
      *
-     * @param fieldType - тип текстового поля
+     * @param fieldType - тип текстового поля, опциональный, void 0 если это IF
      * @param path - путь к блоку ifThenElse текстового поля
      * @param blockType - тип блока в котором находится текстовое поле
      */
     public checkIsLastBlurField(
-        fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
         path?: IMessageTemplate.PathToBlock | void,
+        fieldType?: MESSAGE_TEMPLATE_FIELD_TYPE | void,
         blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
     ): boolean {
         const {
+            pathToIfThenElseBlock: lastBlurSnippet_pathToIfThenElseBlock,
+            snippetMessageInformation,
+        } = this._lastBlurInformation;
+        const {
             fieldType: lastBlurSnippet_fieldType,
             blockType: lastBlurSnippet_blockType,
-            pathToIfThenElseBlock: lastBlurSnippet_pathToIfThenElseBlock,
-        } = this._lastBlurSnippetMessageInformation;
+        } = snippetMessageInformation || {};
+
+        if (fieldType === void 0) {
+            return path === lastBlurSnippet_pathToIfThenElseBlock;
+        }
 
         return path === lastBlurSnippet_pathToIfThenElseBlock
             && blockType === lastBlurSnippet_blockType
@@ -721,7 +751,8 @@ export default class MessageTemplate {
     }
 
     static dtoToJSON(messageTemplateDTO: MessageTemplateDTO): MessageTemplateJSON {
-        const lastBlurSnippetMessageInformationDTO: BlurSnippetMessageInformationDTO = messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation];
+        const lastBlurInformationDTO: LastBlurInformationDTO = messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation];
+        const snippetMessageInformationDTO: LastBlurSnippetMessageInformationDTO | void = lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO];
 
         return {
             defaultMessageSnippets: _messageSnippetsDTOtoJSON(messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets]),
@@ -738,11 +769,15 @@ export default class MessageTemplate {
                     key: ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key],
                 };
             }),
-            lastBlurSnippetMessageInformation: {
-                pathToIfThenElseBlock: _nullToVoid0(lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.pathToIfThenElseBlock]),
-                blockType: _nullToVoid0(lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.blockType]),
-                fieldType: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.fieldType],
-                cursorPosition: lastBlurSnippetMessageInformationDTO[BlurSnippetMessageInformationDTO_Props.cursorPosition],
+            lastBlurInformation: {
+                pathToIfThenElseBlock: _nullToVoid0(lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock]),
+                cursorPosition: lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition],
+                snippetMessageInformation: snippetMessageInformationDTO
+                    ? {
+                        fieldType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType]),
+                        blockType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType]),
+                    }
+                    : void 0,
             },
         };
     }
