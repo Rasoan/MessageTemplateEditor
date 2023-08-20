@@ -100,6 +100,30 @@ export default class MessageTemplate {
         }
     }
 
+    /** Очистить все поля */
+    public reset = () => {
+        this._mapOfIfThenElseBlocks.clear();
+
+        for (const variableKey of this._variables.keys()) {
+            this._variables.set(variableKey, '');
+        }
+
+        this._defaultMessageSnippets.field = {
+            ...this._defaultMessageSnippets.field,
+            message: '',
+            isCanSplit: true,
+        }
+        this._defaultMessageSnippets.fieldAdditional = void 0;
+
+        this._lastBlurInformation = {
+            cursorPosition: 0,
+            snippetMessageInformation: {
+                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+            },
+            insertedVariablesVersion: 0,
+        }
+    }
+
     get lastBlurInformation() {
         return this._lastBlurInformation;
     }

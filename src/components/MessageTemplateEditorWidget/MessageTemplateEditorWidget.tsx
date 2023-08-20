@@ -16,13 +16,15 @@ const MessageTemplateEditorWidget: React.FC = () => {
         setIsOpenMessageTemplateEditor,
         messageTemplate,
         isOpenMessageTemplatePreviewWidget,
-        setIsOpenMessageTemplatePreviewWidget
+        setIsOpenMessageTemplatePreviewWidget,
+        resetMessageTemplate,
     ] = useBaseStore(
         stateManager => [
             stateManager.state.setIsOpenMessageTemplateEditor,
             stateManager.state.messageTemplate,
             stateManager.state.isOpenMessageTemplatePreviewWidget,
             stateManager.state.setIsOpenMessageTemplatePreviewWidget,
+            stateManager.state.messageTemplate.reset,
             //
             stateManager.state.messageTemplate.countIfThenElseBlocks,
             stateManager.state.isOpenMessageTemplateEditor,
@@ -100,7 +102,10 @@ const MessageTemplateEditorWidget: React.FC = () => {
             : null}
         <button onClick={() => console.log(messageTemplate.getMessageSnippets())}>Save</button>
         <button onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}>Preview</button>
-        <button onClick={() => setIsOpenMessageTemplateEditor(false)}>Close</button>
+        <button onClick={() => {
+            setIsOpenMessageTemplateEditor(false);
+            resetMessageTemplate();
+        }}>Close</button>
     </div>;
 }
 

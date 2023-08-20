@@ -106,7 +106,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         );
     };
 
-    let classBrokenIndicatorForHoverEffect: string;
+    let classBrokenIndicatorForHoverEffect = '';
 
     if (isThisFieldLastBlur) {
         // На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле)
