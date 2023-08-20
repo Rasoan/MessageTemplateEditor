@@ -33,8 +33,12 @@ const MessageTemplatePreviewWidget: React.FC = () => {
     return <div
         className={'MessageTemplatePreviewWidget'}
     >
-        <div>
-            <span>{previewWidget}</span>
+        <div className={'MessageTemplatePreviewWidget__previewWidgetContainer previewWidgetContainer'}>
+            <span
+                className={'previewWidgetContainer__text previewWidgetContainerText'}
+            >
+                {previewWidget}
+            </span>
         </div>
         <div>
             <span>Variables:</span>
