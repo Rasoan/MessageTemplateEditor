@@ -120,6 +120,20 @@ export type IfThenElseBlockInfoDTO = [
     ifThenElseBlockDTO: IfThenElseBlockDTO,
 ];
 
+export const enum VariableInfoDTO_Props {
+    key = 0,
+    value = 1,
+
+    __SIZE__ = 3,
+}
+
+export type VariableInfoDTO = [
+    key: string,
+    value: string,
+];
+
+export type VariableInfoJSON = VariableInfoDTO;
+
 export interface IfThenElseBlockInfoJSON {
     key: IMessageTemplate.KeyIfThenElseBlock;
     ifThenElseBlock: IMessageTemplate.IfThenElseBlock;
@@ -177,9 +191,17 @@ export const enum MessageTemplateDTO_Props {
     ifThenElseDTOList = 0,
     defaultMessageSnippets = 1,
     lastBlurSnippetMessageInformation = 2,
+    variablesInfoDTOList = 3,
 
-    __SIZE__ = 3,
+    __SIZE__ = 4,
 }
+
+export type MessageTemplateDTO = [
+    ifThenElseDTOList: IfThenElseBlockInfoDTO[],
+    defaultMessageSnippets: MessageSnippetsDTO,
+    lastBlurInformation: LastBlurInformationDTO,
+    variablesInfoDTOList: VariableInfoDTO[]
+];
 
 export const enum LastBlurSnippetMessageInformationDTO_Props {
     fieldType = 0,
@@ -211,26 +233,9 @@ export type LastBlurInformationDTO = [
     snippetMessageInformationDTO?: LastBlurSnippetMessageInformationDTO | void,
 ];
 
-export type MessageTemplateDTO = [
-    ifThenElseDTOList: IfThenElseBlockInfoDTO[],
-    defaultMessageSnippets: MessageSnippetsDTO,
-    lastBlurInformation: LastBlurInformationDTO,
-];
-
 export interface MessageTemplateJSON {
     ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[];
     defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     lastBlurInformation: IMessageTemplate.LastBlurInformation;
+    variablesInfoListJSON: VariableInfoJSON[];
 }
-
-export const enum VariableInfoDTO_Props {
-    key = 0,
-    value = 1,
-
-    __SIZE__ = 2
-}
-
-export type VariableInfoDTO = [
-    key: string,
-    value: string,
-]

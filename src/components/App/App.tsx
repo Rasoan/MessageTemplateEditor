@@ -16,7 +16,7 @@ export default function App(): JSX.Element {
         stateManager => {
             return [
                 stateManager.state.isOpenMessageTemplateEditor,
-                stateManager.state.toggleIsOpenMessageTemplateEditor,
+                stateManager.state.setIsOpenMessageTemplateEditor,
             ];
         },
         shallow,

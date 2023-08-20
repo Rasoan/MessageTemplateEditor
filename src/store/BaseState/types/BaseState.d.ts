@@ -12,16 +12,19 @@ export namespace IBaseState {
 export type BaseStateJSON = {
     isOpenMessageTemplateEditor: boolean;
     messageTemplate: MessageTemplate;
+    isOpenMessageTemplatePreviewWidget: boolean;
 }
 
 export type BaseStateDTO = [
     isOpenMessageTemplateEditor: boolean,
     messageTemplate: MessageTemplateDTO,
+    isOpenMessageTemplatePreviewWidget: boolean,
 ];
 
 export const enum BaseStateDTO_Props {
     isOpenMessageTemplateEditor = 0,
     messageTemplate = 1,
+    isOpenMessageTemplatePreviewWidget = 2,
 
-    __SIZE__ = 2
+    __SIZE__ = 3
 }

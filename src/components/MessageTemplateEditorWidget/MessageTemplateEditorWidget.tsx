@@ -9,18 +9,23 @@ import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
 
 import "./MessageTemplateEditorWidget.scss";
+import MessageTemplatePreviewWidget from "../../Modal/MessageTemplatePreviewWidget";
 
 const MessageTemplateEditorWidget: React.FC = () => {
     const [
-        isOpenMessageTemplateEditor,
-        toggleIsOpenMessageTemplateEditor,
+        setIsOpenMessageTemplateEditor,
         messageTemplate,
+        isOpenMessageTemplatePreviewWidget,
+        setIsOpenMessageTemplatePreviewWidget
     ] = useBaseStore(
         stateManager => [
-            stateManager.state.isOpenMessageTemplateEditor,
-            stateManager.state.toggleIsOpenMessageTemplateEditor,
+            stateManager.state.setIsOpenMessageTemplateEditor,
             stateManager.state.messageTemplate,
+            stateManager.state.isOpenMessageTemplatePreviewWidget,
+            stateManager.state.setIsOpenMessageTemplatePreviewWidget,
+            //
             stateManager.state.messageTemplate.countIfThenElseBlocks,
+            stateManager.state.isOpenMessageTemplateEditor,
         ],
         shallow,
     );
@@ -34,12 +39,12 @@ const MessageTemplateEditorWidget: React.FC = () => {
 
         messageTemplate.insertVariableInSubMessage(value);
     }
-    const variables = messageTemplate.variables.map((variableName, index) => <button
-        key={variableName + index}
-        value={variableName}
+    const variables = messageTemplate.variablesKeysList.map((variableKey, index) => <button
+        key={variableKey + index}
+        value={variableKey}
         onClick={onClickOnVariable}
     >
-        {`{${variableName}}`}
+        {`{${variableKey}}`}
     </button>);
 
     const splitBlockAndInsertIfThenElse = () => {
@@ -89,9 +94,13 @@ const MessageTemplateEditorWidget: React.FC = () => {
                 countNested={1}
             />
         </div>
+        {isOpenMessageTemplatePreviewWidget ? <>
+                <MessageTemplatePreviewWidget />
+            </>
+            : null}
         <button onClick={() => console.log(messageTemplate.getMessageSnippets())}>Save</button>
-        <button onClick={() => {}}>Preview</button>
-        <button onClick={() => toggleIsOpenMessageTemplateEditor(false)}>Close</button>
+        <button onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}>Preview</button>
+        <button onClick={() => setIsOpenMessageTemplateEditor(false)}>Close</button>
     </div>;
 }
 

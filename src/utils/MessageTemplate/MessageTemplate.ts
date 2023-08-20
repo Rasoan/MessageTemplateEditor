@@ -19,7 +19,7 @@ import {
     MessageSnippetsDTO_Props,
     MessageTemplateDTO,
     MessageTemplateDTO_Props,
-    MessageTemplateJSON,
+    MessageTemplateJSON, VariableInfoDTO, VariableInfoDTO_Props, VariableInfoJSON,
 } from "./types/MessageTemplate";
 import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../constants";
 
@@ -58,10 +58,12 @@ export default class MessageTemplate {
                 ifThenElseBlockInfoListJSON,
                 lastBlurInformation,
                 defaultMessageSnippets,
+                variablesInfoListJSON,
             } = messageTemplateJSON;
 
             this._defaultMessageSnippets = defaultMessageSnippets;
             this._lastBlurInformation = lastBlurInformation;
+            this._variables = new Map(variablesInfoListJSON);
 
             for (const ifThenElseBlockInfoJSON of ifThenElseBlockInfoListJSON) {
                 const {
@@ -104,8 +106,49 @@ export default class MessageTemplate {
     }
 
     /** Массив названий переменных */
-    get variables() {
+    get variablesKeysList() {
         return [ ...this._variables.keys() ];
+    }
+
+    /**
+     * Получить значение переменной из блока переменных
+     */
+    public getVariableValue = (key: string, options?: { force: boolean }) => {
+        const {
+            force,
+        } = options || {};
+        const variableValue = this._variables.get(key);
+
+        if (force !== void 0 && variableValue === void 0) {
+            throw new Error('Can\'t find variable!');
+        }
+
+        return variableValue;
+    }
+
+    /**
+     *
+     * @param key - название переменной
+     * @param value - её значение
+     */
+    public changeVariable = (value: string, key: string) => {
+        const variable = this._variables.get(key);
+
+        if (variable === void 0) {
+            throw new Error('Can\'t find variable!');
+        }
+
+        this._variables.set(key, value);
+
+        this._stateChangeNotify();
+    }
+
+    public clearVariablesValue = () => {
+        for (const variableKey of this._variables.keys()) {
+            this._variables.set(variableKey, '');
+        }
+
+        this._stateChangeNotify();
     }
 
     public insertVariableInSubMessage(variable: string) {
@@ -769,6 +812,7 @@ export default class MessageTemplate {
 
     public toJSON(): MessageTemplateJSON {
         const ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[] = [];
+        const variablesInfoListJSON: VariableInfoJSON[] = [ ...this._variables.entries() ];
 
         for (const [keyIfThenElseBlock, ifThenElseBlock] of this._mapOfIfThenElseBlocks.entries()) {
             ifThenElseBlockInfoListJSON.push({
@@ -779,6 +823,7 @@ export default class MessageTemplate {
 
         return {
             ifThenElseBlockInfoListJSON,
+            variablesInfoListJSON,
             lastBlurInformation: this._lastBlurInformation,
             defaultMessageSnippets: this._defaultMessageSnippets,
         }
@@ -791,7 +836,8 @@ export default class MessageTemplate {
         const {
             ifThenElseBlockInfoListJSON,
             lastBlurInformation,
-            defaultMessageSnippets
+            defaultMessageSnippets,
+            variablesInfoListJSON,
         } = messageTemplateJSON;
 
         for (const { key: keyIfThenElseBlock, ifThenElseBlock } of ifThenElseBlockInfoListJSON) {
@@ -818,10 +864,13 @@ export default class MessageTemplate {
             ifThenElseDTOList.push(ifThenElseBlockInfoDTO);
         }
 
+        const variableInfoDTOList: VariableInfoDTO[] = _variablesInfoListJSONToDTO(variablesInfoListJSON);
+
         const messageTemplateDTO = new Array(MessageTemplateDTO_Props.__SIZE__) as MessageTemplateDTO;
 
         messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList] = ifThenElseDTOList;
         messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets] = _messageSnippetsJSONToDTO(defaultMessageSnippets);
+        messageTemplateDTO[MessageTemplateDTO_Props.variablesInfoDTOList] = variableInfoDTOList;
 
         if (lastBlurInformation !== void 0) {
             const {
@@ -901,6 +950,10 @@ export default class MessageTemplate {
             && fieldType === lastBlurSnippet_fieldType;
     }
 
+    get previewWidget() {
+        return 'Hello world!!'
+    }
+
     public static fromDTO(messageTemplateDTO: MessageTemplateDTO, stateChangeNotify: Function): MessageTemplate {
         const messageTemplateJSON: MessageTemplateJSON = MessageTemplate.dtoToJSON(messageTemplateDTO);
 
@@ -940,6 +993,7 @@ export default class MessageTemplate {
                     : void 0,
                 insertedVariablesVersion: lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion],
             },
+            variablesInfoListJSON: _variablesInfoListDTOToJSON(messageTemplateDTO[MessageTemplateDTO_Props.variablesInfoDTOList]),
         };
     }
 
@@ -1009,8 +1063,6 @@ function _checkIsIfThenElseBlock(
         || messageSnippets_THEN === void 0
         || messageSnippets_ELSE === void 0)
     ;
-
-
 }
 
 function _assertIsIfThenElseBlock(
@@ -1114,6 +1166,14 @@ function _messageSnippetsDTOtoJSON(messageSnippetsDTO: MessageSnippetsDTO): IMes
             }
             : void 0,
     }
+}
+
+function _variablesInfoListDTOToJSON(variablesInfoListDTO: VariableInfoDTO[]): VariableInfoJSON[] {
+    return variablesInfoListDTO;
+}
+
+function _variablesInfoListJSONToDTO(variablesInfoListJSON: VariableInfoJSON[]): VariableInfoDTO[] {
+    return variablesInfoListJSON;
 }
 
 /**

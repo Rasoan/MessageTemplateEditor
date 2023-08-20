@@ -8,6 +8,7 @@ export default class BaseState {
     private _stateChangeNotify: Function;
 
     public isOpenMessageTemplateEditor: boolean;
+    public isOpenMessageTemplatePreviewWidget: boolean;
     public messageTemplate: MessageTemplate;
 
     constructor(options: IBaseState.Options) {
@@ -22,9 +23,11 @@ export default class BaseState {
             const {
                 isOpenMessageTemplateEditor,
                 messageTemplate,
+                isOpenMessageTemplatePreviewWidget,
             } = baseStateJSON;
             this.isOpenMessageTemplateEditor = isOpenMessageTemplateEditor;
             this.messageTemplate = messageTemplate;
+            this.isOpenMessageTemplatePreviewWidget = isOpenMessageTemplatePreviewWidget;
 
             return;
         }
@@ -33,8 +36,14 @@ export default class BaseState {
         this.messageTemplate = new MessageTemplate({ stateChangeNotify });
     }
 
-    public toggleIsOpenMessageTemplateEditor = (isOpenMessageTemplateEditor: boolean) => {
+    public setIsOpenMessageTemplateEditor = (isOpenMessageTemplateEditor: boolean) => {
         this.isOpenMessageTemplateEditor = isOpenMessageTemplateEditor;
+
+        this._stateChangeNotify();
+    }
+
+    public setIsOpenMessageTemplatePreviewWidget = (isOpenMessageTemplatePreviewWidget: boolean) => {
+        this.isOpenMessageTemplatePreviewWidget = isOpenMessageTemplatePreviewWidget;
 
         this._stateChangeNotify();
     }
@@ -43,6 +52,7 @@ export default class BaseState {
         const baseStateDTO = new Array(BaseStateDTO_Props.__SIZE__) as BaseStateDTO;
 
         baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplateEditor] = this.isOpenMessageTemplateEditor;
+        baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplatePreviewWidget] = this.isOpenMessageTemplatePreviewWidget;
         baseStateDTO[BaseStateDTO_Props.messageTemplate] = this.messageTemplate.toDTO();
 
         return baseStateDTO;
@@ -52,6 +62,7 @@ export default class BaseState {
         return {
             isOpenMessageTemplateEditor: baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplateEditor],
             messageTemplate: MessageTemplate.fromDTO(baseStateDTO[BaseStateDTO_Props.messageTemplate], stateChangeNotify),
+            isOpenMessageTemplatePreviewWidget: baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplatePreviewWidget],
         }
     }
 
