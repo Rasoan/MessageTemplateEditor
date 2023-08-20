@@ -1,5 +1,4 @@
 'use strict';
-// todo: если выделили текст, то его заменить вставленной переменной!
 import {
     IfThenElseBlockDTO,
     IfThenElseBlockDTO_Props,
@@ -1186,9 +1185,9 @@ export default class MessageTemplate {
 
             // todo: я бы сделал так, нужно поставить фиксатор на ограничение рекурсивной вложенности,
             //  но поскольку этого в ТЗ нет, ограничусь console.error.
-            throw new Error(textError);
+            // throw new Error(textError);
 
-            // console.error(textError);
+            console.error(textError);
         }
     }
 }
