@@ -9,7 +9,7 @@ import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
 
 import "./MessageTemplateEditorWidget.scss";
-import MessageTemplatePreviewWidget from "../../Modal/MessageTemplatePreviewWidget";
+import MessageTemplatePreviewWidget from "../MessageTemplatePreviewWidget/MessageTemplatePreviewWidget";
 
 const MessageTemplateEditorWidget: React.FC = () => {
     const [

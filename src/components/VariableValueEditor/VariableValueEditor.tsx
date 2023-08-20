@@ -25,9 +25,16 @@ const VariableValueEditor: React.FC<VariableValueEditorProps> = (props) => {
         shallow,
     );
 
-    return <div>
-        <span>{variableKey}</span>
+    return <div className={'VariableValueEditor'}>
+        <label
+            className={'VariableValueEditor__label VariableValueEditorLabel'}
+            htmlFor={variableKey}
+        >
+            {variableKey}
+        </label>
         <input
+            className={'VariableValueEditor__field VariableValueEditorField'}
+            name={variableKey}
             value={variableValue}
             onChange={(event) => changeVariable(event.target.value, variableKey)}
         >
