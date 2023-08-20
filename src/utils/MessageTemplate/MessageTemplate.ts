@@ -28,6 +28,8 @@ import {generatorMessage} from "../utils";
 
 /** Количество добавляемых текстовых полей (THEN + ELSE). */
 const QUANTITY_NEW_FIELDS = 3;
+/** Разделитель для путей */
+const SEPARATOR_FOR_PATH = '/';
 
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
@@ -810,6 +812,38 @@ export default class MessageTemplate {
             block.fieldAdditional = void 0;
         }
 
+        for (const [ currentIfThenElseKey, currentIfThenElseValue ] of this._mapOfIfThenElseBlocks.entries()) {
+            const {
+                _mapOfIfThenElseBlocks: mapOfIfThenElseBlocks,
+            } = this;
+            const {
+                path: currentIfThenElse_path,
+            } = currentIfThenElseValue;
+
+            if (path) {
+                // Если у текущего ifThenElse есть путь, значит он вложен, значит возможно он входит в удалённый ifThenElse
+                if (currentIfThenElse_path) {
+                    /*
+                        Если путь удалённого (родительского по отношения к текущему) ifThenElse входит в путь текущего ifThenElse,
+                         значит он ребёнок удалённого ifThenElse,
+                         значит его так-же по цепочке удаляем.
+                     */
+                    if (currentIfThenElse_path.includes(path)) {
+                        const currentIfThenElseKey = MessageTemplate._createKeyForIfThenElseBlock(currentIfThenElse_path);
+
+                        mapOfIfThenElseBlocks.delete(currentIfThenElseKey);
+                    }
+                }
+            }
+            /*
+                Если у ifThenELse нет пути, значит это первый ifThenElse был удалён,
+                значит проверять и вовсе ничего не надо, сносим все ifThenElse.
+             */
+            else {
+                mapOfIfThenElseBlocks.clear();
+            }
+        }
+
         this._stateChangeNotify();
     }
 
@@ -979,8 +1013,7 @@ export default class MessageTemplate {
                 continue;
             }
 
-            const separator = '/';
-            const listOfParentBlocks = path.split(separator);
+            const listOfParentBlocks = path.split(SEPARATOR_FOR_PATH);
 
             // начинаем с последнего и идём к первому
             for (let index = listOfParentBlocks.length - 1; index >= 0; index--) {
@@ -988,7 +1021,7 @@ export default class MessageTemplate {
                     listOfParentBlocks.pop()
                 ) as MESSAGE_TEMPLATE_BLOCK_TYPE;
                 const pathToParentBlock = listOfParentBlocks.join(
-                    separator,
+                    SEPARATOR_FOR_PATH,
                 ) as IMessageTemplate.PathToBlock;
                 const parentIfThenElse = this.getIfThenElse(
                     pathToParentBlock,
