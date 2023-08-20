@@ -1,5 +1,5 @@
 'use strict';
-
+// todo: если выделили текст, то его заменить вставленной переменной!
 import {
     IfThenElseBlockDTO,
     IfThenElseBlockDTO_Props,
@@ -19,9 +19,12 @@ import {
     MessageSnippetsDTO_Props,
     MessageTemplateDTO,
     MessageTemplateDTO_Props,
-    MessageTemplateJSON, VariableInfoDTO, VariableInfoDTO_Props, VariableInfoJSON,
+    MessageTemplateJSON,
+    VariableInfoDTO,
+    VariableInfoJSON,
 } from "./types/MessageTemplate";
 import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../constants";
+import {generatorMessage} from "../utils";
 
 /** Количество добавляемых текстовых полей (THEN + ELSE). */
 const QUANTITY_NEW_FIELDS = 3;
@@ -397,7 +400,7 @@ export default class MessageTemplate {
         };
 
         /* При любом раскладе, это текстовое поле ВСЕГДА последнее. */
-        this._defaultMessageSnippets.fieldAdditional.positionInResultMessage = Infinity;
+        this._defaultMessageSnippets.fieldAdditional.positionInResultMessage = Number.MAX_VALUE;
 
         // удалили вторую часть сообщения из разбитого поля
         splitTarget_field.message = splitTarget_message.slice(0, positionSplitterInSubMessage);
@@ -951,7 +954,118 @@ export default class MessageTemplate {
     }
 
     get previewWidget() {
-        return 'Hello world!!'
+        const filledVariablesList: string[] = [];
+        const resultIfThenElseList: IMessageTemplate.IfThenElseBlock[] = [];
+
+        for (const [ variableKey, variableValue] of this._variables.entries()) {
+            if (variableValue !== '') {
+                filledVariablesList.push(
+                    _keyToVariable(variableKey)
+                );
+            }
+        }
+
+        for (const currentIfThenElse of this._mapOfIfThenElseBlocks.values()) {
+            /** Здесь выставится false если ifThenElse не попадает в результирующее сообщение */
+            let isIncludeInResultIfThenElse = true;
+            const {
+                path,
+            } = currentIfThenElse;
+
+            // если path отсутствует, то это первый ifThenElse, он точно будет в результирующем сообщении
+            if (!path) {
+                resultIfThenElseList.push(currentIfThenElse);
+
+                continue;
+            }
+
+            const separator = '/';
+            const listOfParentBlocks = path.split(separator);
+
+            // начинаем с последнего и идём к первому
+            for (let index = listOfParentBlocks.length - 1; index >= 0; index--) {
+                const parentBlockType: MESSAGE_TEMPLATE_BLOCK_TYPE = Number(
+                    listOfParentBlocks.pop()
+                ) as MESSAGE_TEMPLATE_BLOCK_TYPE;
+                const pathToParentBlock = listOfParentBlocks.join(
+                    separator,
+                ) as IMessageTemplate.PathToBlock;
+                const parentIfThenElse = this.getIfThenElse(
+                    pathToParentBlock,
+                    { force: true },
+                ) as IMessageTemplate.IfThenElseBlock;
+                const {
+                    dependencyVariableName,
+                } = parentIfThenElse;
+                /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
+                const isEmptyDependencyVariable = !filledVariablesList.includes(dependencyVariableName);
+
+                if (parentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
+                    if (!isEmptyDependencyVariable) {
+                        isIncludeInResultIfThenElse = false;
+                    }
+                }
+                else if (parentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
+                    if (isEmptyDependencyVariable) {
+                        isIncludeInResultIfThenElse = false;
+                    }
+                }
+                else {
+                    throw new Error('Unknown block type');
+                }
+            }
+
+            if (isIncludeInResultIfThenElse) {
+                resultIfThenElseList.push(currentIfThenElse);
+            }
+        }
+
+        const resultBlocksOfIfThenElseList: IMessageTemplate.MessageSnippets[] = [];
+
+        for (const currentIfThenElse of resultIfThenElseList) {
+            const {
+                messageSnippets_THEN,
+                messageSnippets_ELSE,
+                dependencyVariableName,
+            } = currentIfThenElse;
+            /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
+            const isEmptyDependencyVariable = !filledVariablesList.includes(dependencyVariableName);
+
+            if (isEmptyDependencyVariable) {
+                resultBlocksOfIfThenElseList.push(messageSnippets_ELSE);
+            }
+            else {
+                resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+            }
+        }
+
+        const resultFields: IMessageTemplate.MessageFieldDetails[] = [
+            this._defaultMessageSnippets,
+            ...resultBlocksOfIfThenElseList,
+        ].reduce((fieldsDetails: IMessageTemplate.MessageFieldDetails[], messageSnippet: IMessageTemplate.MessageSnippets) => {
+            const {
+                field,
+                fieldAdditional,
+            } = messageSnippet;
+
+            fieldsDetails.push(field);
+
+            if (fieldAdditional) {
+                fieldsDetails.push(fieldAdditional);
+            }
+
+            return fieldsDetails;
+        }, [])
+            .sort((fieldPrev, fieldNext) => {
+                return fieldPrev.positionInResultMessage - fieldNext.positionInResultMessage
+            })
+        ;
+
+        const resultString = resultFields.reduce((resultMessage, fieldDetails) => {
+            return resultMessage + fieldDetails.message;
+        }, '');
+
+        return generatorMessage(resultString, Object.fromEntries(this._variables));
     }
 
     public static fromDTO(messageTemplateDTO: MessageTemplateDTO, stateChangeNotify: Function): MessageTemplate {
@@ -1203,4 +1317,28 @@ function insertSubstringInString(text: string, subText: string, position: number
     splitTextArray.splice(position, 0, subText);
 
     return splitTextArray.join('');
+}
+
+/**
+ * Отображаемую переменную конвертировать в ключ от переменной
+ *
+ * @param variable
+ */
+function _variableToKey(variable: string) {
+
+}
+
+/**
+ * Ключ переменной конвертировать в отображаемую переменную
+ *
+ * @param key
+ */
+function _keyToVariable(key: string) {
+    const variable = key
+        // на всякий случай избавляемся от скобочек, что бы их не задублировать случайно
+        .replace('{', '')
+        .replace('}', '')
+    ;
+
+    return `{${variable}}`
 }

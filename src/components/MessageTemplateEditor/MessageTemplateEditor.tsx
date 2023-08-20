@@ -32,7 +32,6 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const [
         messageTemplate,
         message,
-        positionInResultMessage,
         isCanSplit,
         insertedVariablesVersion,
     ] = useBaseStore(
@@ -42,10 +41,6 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
                 path,
                 blockType,
             )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].message,
-            stateManager.state.messageTemplate.getBlockInformationForce(
-                path,
-                blockType,
-            )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].positionInResultMessage,
             stateManager.state.messageTemplate.getBlockInformationForce(
                 path,
                 blockType,
@@ -143,10 +138,6 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     };
 
     return <>
-        {
-            // todo: убрать дебажный span ниже
-        }
-        <span>positionInResultMessage: {positionInResultMessage}</span>
         <TextareaAutosize
             ref={ref}
             onClick={(Event) => onClick(Event)}
