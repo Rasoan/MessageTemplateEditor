@@ -14,7 +14,6 @@ interface MessageTemplateConditionEditorProps {
     path?: IMessageTemplate.PathToBlock | void,
 }
 
-// todo: rename to FieldForEditVariableName, Название параметров тоже переименовать
 const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorProps> = (props) => {
     const {
         path,

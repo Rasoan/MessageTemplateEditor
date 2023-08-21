@@ -22,7 +22,6 @@ interface MessageTemplateEditorProps {
     path?: IMessageTemplate.PathToBlock | void;
 }
 
-// todo: rename to MessageEditor
 const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const {
         path,
