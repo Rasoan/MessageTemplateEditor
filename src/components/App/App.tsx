@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 import "./App.scss";
-import { useMemo } from "react";
+import {useMemo, useState} from "react";
 import MessageTemplateEditorWidget from "../MessageTemplateEditorWidget/MessageTemplateEditorWidget";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
@@ -21,11 +21,14 @@ export default function App(): JSX.Element {
         },
         shallow,
     );
+    const callbackSave = async (message: string): Promise<void> => {
+        console.log(message);
+    }
 
     return <div>
         {
             isOpenMessageTemplateEditor
-                ? <MessageTemplateEditorWidget />
+                ? <MessageTemplateEditorWidget callbackSave={callbackSave} />
                 : <button onClick={() => toggleIsOpenMessageTemplateEditor(true)}>
                     Message Editor
                 </button>

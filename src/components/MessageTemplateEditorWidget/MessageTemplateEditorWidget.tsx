@@ -11,13 +11,21 @@ import {shallow} from "zustand/shallow";
 import "./MessageTemplateEditorWidget.scss";
 import MessageTemplatePreviewWidget from "../MessageTemplatePreviewWidget/MessageTemplatePreviewWidget";
 
-const MessageTemplateEditorWidget: React.FC = () => {
+interface MessageTemplateEditorWidgetProps {
+    callbackSave: (previewWidget: string) => Promise<void>;
+}
+
+const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = (props) => {
+    const {
+        callbackSave,
+    } = props;
     const [
         setIsOpenMessageTemplateEditor,
         messageTemplate,
         isOpenMessageTemplatePreviewWidget,
         setIsOpenMessageTemplatePreviewWidget,
         resetMessageTemplate,
+        previewWidget,
     ] = useBaseStore(
         stateManager => [
             stateManager.state.setIsOpenMessageTemplateEditor,
@@ -25,6 +33,7 @@ const MessageTemplateEditorWidget: React.FC = () => {
             stateManager.state.isOpenMessageTemplatePreviewWidget,
             stateManager.state.setIsOpenMessageTemplatePreviewWidget,
             stateManager.state.messageTemplate.reset,
+            stateManager.state.messageTemplate.previewWidget,
             //
             stateManager.state.messageTemplate.countIfThenElseBlocks,
             stateManager.state.isOpenMessageTemplateEditor,
@@ -100,7 +109,7 @@ const MessageTemplateEditorWidget: React.FC = () => {
                 <MessageTemplatePreviewWidget />
             </>
             : null}
-        <button onClick={() => console.log(messageTemplate.getMessageSnippets())}>Save</button>
+        <button onClick={() => callbackSave(previewWidget)}>Save</button>
         <button onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}>Preview</button>
         <button onClick={() => {
             setIsOpenMessageTemplateEditor(false);
