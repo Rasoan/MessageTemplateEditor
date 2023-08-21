@@ -87,7 +87,7 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     return <>
         <input
             ref={ref}
-            className={'messageTemplateConditionEditor'}
+            className={'MessageTemplateConditionEditor'}
             value={variableName}
             onClick={(Event) => onClick(Event)}
             onKeyUp={(Event) => onKeyUp(Event)}

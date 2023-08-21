@@ -25,11 +25,16 @@ export default function App(): JSX.Element {
         console.log(message);
     }
 
-    return <div>
+    return <div
+        className={'App'}
+    >
         {
             isOpenMessageTemplateEditor
                 ? <MessageTemplateEditorWidget callbackSave={callbackSave} />
-                : <button onClick={() => toggleIsOpenMessageTemplateEditor(true)}>
+                : <button
+                className={'App__toggleMessageTemplate toggleMessageTemplate'}
+                    onClick={() => toggleIsOpenMessageTemplateEditor(true)}
+                >
                     Message Editor
                 </button>
         }

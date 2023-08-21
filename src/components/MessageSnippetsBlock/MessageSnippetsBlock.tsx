@@ -57,7 +57,9 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         positionInResultMessage: fieldAdditional_positionInResultMessage,
     } = fieldAdditional || {};
 
-    return <div>
+    return <div
+        className={'MessageSnippetsBlock'}
+    >
         <MessageTemplateEditor
             isCanSplit={field_isCanSplit}
             path={path}

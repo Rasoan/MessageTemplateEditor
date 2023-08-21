@@ -50,13 +50,6 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
 
         messageTemplate.insertVariableInSubMessage(value);
     }
-    const variables = messageTemplate.variablesKeysList.map((variableKey, index) => <button
-        key={variableKey + index}
-        value={variableKey}
-        onClick={onClickOnVariable}
-    >
-        {`{${variableKey}}`}
-    </button>);
 
     const splitBlockAndInsertIfThenElse = () => {
         try {
@@ -70,12 +63,29 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
     return <div
         className={"MessageTemplateEditorWidget"}
     >
-        <h2>Message Template Editor</h2>
-        <div>
-            {variables}
+        <h2
+            className={'MessageTemplateEditorWidget__header header'}
+        >
+            Message Template Editor
+        </h2>
+        <div
+            className={'MessageTemplateEditorWidget__variablesContainer variablesContainer'}
+        >
+            <>
+                {
+                    messageTemplate.variablesKeysList.map((variableKey, index) => <button
+                        className={'variablesContainer__variableButton variableButton'}
+                        key={variableKey + index}
+                        value={variableKey}
+                        onClick={onClickOnVariable}
+                    >
+                        {`{${variableKey}}`}
+                    </button>)
+                }
+            </>
         </div>
         <button
-            className={"splitterFields"}
+            className={"MessageTemplateEditorWidget__splitterFields splitterFields"}
             onClick={splitBlockAndInsertIfThenElse}
         >
             {
@@ -84,19 +94,16 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
                     &#125; - код кавычки "}"
                 */
             }
-            Click to add:
+            <span>Click to add:</span>
             <StickerForCondition
                 content={"if"}
-            />
-            <span>&#123;&#123;some_variable&#125; or expression&#125;</span>
+            /><span>&#123;&#123;some_variable&#125; or expression&#125;</span>
             <StickerForCondition
                 content={"then"}
-            />
-            <span>&#123;then value&#125;</span>
+            /><span>&#123;then value&#125;</span>
             <StickerForCondition
                 content={"else"}
-            /> &#123;
-            else value&#125;
+            /><span>&#123;else value&#125;</span>
         </button>
         <div
             className={"MessageTemplateEditorWidget__containerForSubMessages"}
@@ -106,15 +113,34 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
             />
         </div>
         {isOpenMessageTemplatePreviewWidget ? <>
-                <MessageTemplatePreviewWidget />
+                <MessageTemplatePreviewWidget/>
             </>
             : null}
-        <button onClick={() => callbackSave(previewWidget)}>Save</button>
-        <button onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}>Preview</button>
-        <button onClick={() => {
-            setIsOpenMessageTemplateEditor(false);
-            resetMessageTemplate();
-        }}>Close</button>
+        <div
+            className={'MessageTemplateEditorWidget__controlPanel controlPanel'}
+        >
+            <button
+                className={'controlPanel__controlButton controlButton'}
+                onClick={() => callbackSave(previewWidget)}
+            >
+                Save
+            </button>
+            <button
+                className={'controlPanel__controlButton controlButton'}
+                onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}
+            >
+                Preview
+            </button>
+            <button
+                className={'controlPanel__controlButton controlButton'}
+                onClick={() => {
+                    setIsOpenMessageTemplateEditor(false);
+                    resetMessageTemplate();
+                }}
+            >
+                Close
+            </button>
+        </div>
     </div>;
 }
 

@@ -1,15 +1,31 @@
-.conditionalBlockThen {
+.IfThenElse {
   display: flex;
+  padding: 20px;
 
-  &__header {
-    margin-left: 10px;
+  &__buttonDeleter {
+    margin-top: 13px;
   }
 }
 
-.conditionalBlockElse {
+.buttonDeleter {
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid black;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.conditionalBlock {
+  margin: 15px 0 15px 20px;
   display: flex;
 
-  &__header {
-    margin-left: 10px;
+  &__stickerForConditionContainer {
+    margin-right: 40px;
   }
+}
+
+.stickerForConditionContainer {
+  min-width: 60px;
 }

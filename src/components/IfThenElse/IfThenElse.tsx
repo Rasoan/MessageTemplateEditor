@@ -61,35 +61,48 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
         messageTemplate.deleteIfThenElse(path);
     }
 
-    return <div className={"conditionalBlock"}>
-        <button onClick={undoBlockBreaking}>Delete</button>
-        <div className={"conditionalBlock__if conditionalBlockIf"}>
-            <StickerForCondition content={'if'} />
-            <MessageTemplateConditionEditor
-                path={path}
-            />
-        </div>
-        <div className={"conditionalBlock__then conditionalBlockThen"}>
-            <div className={"conditionalBlockThen__header"}>
-                <StickerForCondition content={'then'}/>
+    return <div className={"IfThenElse"}>
+        <button
+            className={"IfThenElse__buttonDeleter buttonDeleter"}
+            onClick={undoBlockBreaking}
+        >
+            Delete
+        </button>
+        <div
+            className={"IfThenElse__wrapperContent wrapperContent"}
+        >
+            <div className={"wrapperContent__if conditionalBlock conditionalBlockIf"}>
+                <div
+                    className={'conditionalBlock__stickerForConditionContainer stickerForConditionContainer'}
+                >
+                    <StickerForCondition content={'if'}/>
+                </div>
+                <MessageTemplateConditionEditor
+                    path={path}
+                />
             </div>
-            <MessageSnippetsBlock
-                path={path}
-                blockType={blockTypeTHEN}
-                // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
-                countNested={countNested + 1}
-            />
-        </div>
-        <div className={"conditionalBlock__else conditionalBlockElse"}>
-            <div className={"conditionalBlockElse__header"}>
-                <StickerForCondition content={'else'} />
+            <div className={"wrapperContent__conditionalBlock conditionalBlock conditionalBlockThen"}>
+                <div className={"conditionalBlock__stickerForConditionContainer stickerForConditionContainer"}>
+                    <StickerForCondition content={'then'}/>
+                </div>
+                <MessageSnippetsBlock
+                    path={path}
+                    blockType={blockTypeTHEN}
+                    // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
+                    countNested={countNested + 1}
+                />
             </div>
-            <MessageSnippetsBlock
-                path={path}
-                blockType={blockTypeELSE}
-                // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
-                countNested={countNested + 1}
-            />
+            <div className={"wrapperContent__conditionalBlock conditionalBlock conditionalBlockElse"}>
+                <div className={"conditionalBlock__stickerForConditionContainer stickerForConditionContainer"}>
+                    <StickerForCondition content={'else'}/>
+                </div>
+                <MessageSnippetsBlock
+                    path={path}
+                    blockType={blockTypeELSE}
+                    // увеличим счётчик вложенности ifThenElse в ifThenElse на 1
+                    countNested={countNested + 1}
+                />
+            </div>
         </div>
     </div>
 };

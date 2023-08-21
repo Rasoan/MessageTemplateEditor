@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "jsx": "react",
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "outDir": "./dist",
+        "preserveConstEnums": true,
+        "removeComments": true,
+        "sourceMap": true,
+        "lib": [
+            "DOM",
+            "ES2021",
+            "ES2022"
+        ],
+        "target": "es6",
+        "allowJs": true,
+        "alwaysStrict": true,
+        "strictNullChecks": true,
+        "stripInternal": true,
+        "noResolve": false,
+        "diagnostics": false,
+        "extendedDiagnostics": false,
+        "declaration": false,
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "disableSizeLimit": false,
+        "noImplicitThis": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "strictBindCallApply": true,
+        "emitDecoratorMetadata": false,
+        "experimentalDecorators": true,
+        "strictFunctionTypes": true,
+        "strictPropertyInitialization": true,
+        "newLine": "lf"
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}

@@ -1,7 +1,12 @@
 .MessageTemplateEditor {
   resize: none;
-  width: 100%;
+  //width: 100%;
+  //min-width: 800px;
+  width: 1000px;
   min-height: 50px;
+  box-sizing: border-box;
+  padding: 4px;
+  overflow: hidden;
 }
 
 /*
@@ -10,9 +15,15 @@
   что бы пользователь понимал, можно ли разбить текущий блок или нет.
  */
 .splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canSplit {
-  border: 5px solid green;
+  box-shadow: 0 0 5px green;
+  padding: 3px 0px 3px 3px;
+  border: 1px solid green;
+  outline: none;
 }
 
 .splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canNotSplit {
-  border: 5px solid red;
+  box-shadow: 0 0 5px red;
+  padding: 3px 0px 3px 3px;
+  border: 1px solid red;
+  outline: none;
 }
