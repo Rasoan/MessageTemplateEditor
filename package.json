@@ -7,6 +7,7 @@
     "start": "cross-env IS_DEV_BUILD=1 webpack serve",
     "build": "webpack --config webpack.config.js",
     "build:dev": "cross-env IS_DEV_BUILD=1 pnpm run build",
+    "publish": "gh-pages -d dist",
     "test": "jest"
   },
   "author": "Araik Rasayan",
@@ -32,6 +33,7 @@
     "typescript": "^5.1.6",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4",
+    "gh-pages": "3.2.3",
     "webpack-dev-server": "^4.15.1"
   },
   "dependencies": {
