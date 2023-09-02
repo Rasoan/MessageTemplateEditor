@@ -6,6 +6,7 @@
   "scripts": {
     "start": "cross-env IS_DEV_BUILD=1 webpack serve",
     "build": "webpack --config webpack.config.js",
+    "build:publish": "pnpm run build && gh-pages -d dist",
     "build:dev": "cross-env IS_DEV_BUILD=1 pnpm run build",
     "publish": "gh-pages -d dist",
     "test": "jest"
