@@ -15,15 +15,76 @@ import {IMessageTemplate} from "./MessageTemplate/types/MessageTemplate";
  * так и отсутствовать необходимые - будут интерпретироваться, как пустые значения.
  */
 export function generatorMessage(template: string, values: Record<string, string>): string {
-    let messageResult = template;
+    /**
+     * Массив срезов строки, выглядит так:
+     * Входная строка: "Привет, {firstname}, как дела? Пойдём завтра гулять в {placeName}? Завтра я буду в {time} занят"
+     * Элементы массива:
+     * 1) { key: "firstname", segmentOfMessageResult: "Привет, {firstname}" }
+     * 2) { key: "placename", segmentOfMessageResult: ", как дела? Пойдём завтра гулять в {placeName}" }
+     * 3) { key: "time", segmentOfMessageResult: "? Завтра я буду в {time}" }
+     * Окончание строки - " занят" докинется в результирующую строку позже.
+    */
+    let substringsInfoListWithKeys: {
+        /** Ключ переменной, которую будем вставлять в строку */
+        key: string;
+        /** Срез строки с наконечником содержащим переменную */
+        substring: string;
+    }[] = [];
 
-    for (const [key, value] of Object.entries(values)) {
-        messageResult = messageResult
-            .replaceAll(`{${key}}`, value)
-        ;
+    /* Длина подстроки **/
+    let currentSubstringLength = 0;
+
+    for (const [ key, value ] of Object.entries(values)) {
+        let keyInStringPosition = 0;
+
+        // цикл обязательно прервётся, когда все переменные будут найдены
+        while (true) {
+            keyInStringPosition = template.indexOf(`{${key}}`, keyInStringPosition);
+
+            // условие выхода из цикла поиска вхождений ключа в строке
+            if (!~keyInStringPosition) {
+                break;
+            }
+
+            const {
+                substring: {
+                    length: lastSubstringLength = 0,
+                } = {},
+            } = substringsInfoListWithKeys[substringsInfoListWithKeys.length - 1/** последний элемент */] || {};
+
+            currentSubstringLength = keyInStringPosition + key.length + 2/* 2 фигурные скобки */;
+
+            substringsInfoListWithKeys.push({
+                key,
+                substring: template.slice(lastSubstringLength, currentSubstringLength),
+            });
+
+            // перекидываем стартовую позицию для поиска вхождения на позицию вперёд, что бы не находить постоянно один и тот же ключ в string.indexOf
+            keyInStringPosition++;
+
+            // fixme: если этот if раскомментировать, то нарушится ТЗ - 100% покрытие тестами generatorMessage(),
+            //  но этот if НЕЛЬЗЯ закомментировать, поскольку должен быть предохранитель от зацикливания.
+            // любое число в string.indexOf меньше длины самой строки, а если вышло не так, то точно зациклились
+            // if (keyInStringPosition > template.length) {
+            //     throw new Error('The loop with the replacement of variables looped!');
+            // }
+        }
     }
 
-    return messageResult;
+    const substringResult = substringsInfoListWithKeys.map(substringInfo => {
+        const {
+            key,
+            substring,
+        } = substringInfo;
+
+        return substring.slice(
+            /* с начала строки */
+            0,
+            substring.length - key.length - 2/* 2 фигурные скобки от ключа - "{" "}" */,
+        ) + values[key];
+    }).join('');
+
+    return substringResult + template.slice(currentSubstringLength, template.length);
 }
 
 /**

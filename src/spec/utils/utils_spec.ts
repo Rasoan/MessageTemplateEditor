@@ -15,6 +15,18 @@ describe('generatorMessage', () => {
         expect(message).toBe(`Hello Victor Kram!`);
     });
 
+    it('empty message', () => {
+        const message = generatorMessage(
+            '',
+            {
+                firstname: 'Victor',
+                lastname: 'Kram',
+            },
+        );
+
+        expect(message).toBe('');
+    });
+
     it('Only variables in template', () => {
         const message = generatorMessage(
             `{firstname}{lastname}`,
@@ -119,5 +131,131 @@ describe('generatorMessage', () => {
         );
 
         expect(message).toBe("{otherVariable}.Hello world! {I'm is ignored variable}");
+    });
+
+    /*
+     * Этот describe содержит тесты с крайними значениями и проверками ситуаций,
+     * в которых мы вводим ключ одной переменной вместо значения другой переменной.
+     */
+    describe('cases', () => {
+        it('Insert key of variable in value of other variable', () => {
+            const message = generatorMessage(
+                `Hello {firstname}{lastname}!`,
+                {
+                    firstname: '{lastname}',
+                    lastname: 'Ольга',
+                },
+            );
+
+            expect(message).toBe(`Hello {lastname}Ольга!`);
+        });
+
+        it('Insert key of variable in value of other variable 2', () => {
+            const message = generatorMessage(
+                `Hello {firstname} {lastname}!`,
+                {
+                    firstname: '{lastname}',
+                    lastname: 'Ольга',
+                },
+            );
+
+            expect(message).toBe(`Hello {lastname} Ольга!`);
+        });
+
+        it('Insert key of variable in value of other variable 3', () => {
+            const message = generatorMessage(
+                `Hello {firstname} 12 3 {lastname}!`,
+                {
+                    firstname: '{lastname}',
+                    lastname: 'Ольга',
+                },
+            );
+
+            expect(message).toBe(`Hello {lastname} 12 3 Ольга!`);
+        });
+
+        it('Insert key of variable in value of other variable 4', () => {
+            const message = generatorMessage(
+                `Hello {firstname} {lastname}`,
+                {
+                    firstname: 'Ольга',
+                    lastname: '{lastname}',
+                },
+            );
+
+            expect(message).toBe(`Hello Ольга {lastname}`);
+        });
+
+        it('Insert key of variable in value of other variable 5', () => {
+            const message = generatorMessage(
+                `{firstname}{lastname}))`,
+                {
+                    firstname: '{lastname}',
+                    lastname: '{firstname}',
+                },
+            );
+
+            expect(message).toBe(`{lastname}{firstname}))`);
+        });
+
+        it('Insert key of variable in value of other variable 6', () => {
+            const message = generatorMessage(
+                `{firstname}{lastname}`,
+                {
+                    firstname: '{lastname}',
+                    lastname: '{firstname}',
+                },
+            );
+
+            expect(message).toBe(`{lastname}{firstname}`);
+        });
+
+        it('Insert key of variable in value of other variable 7', () => {
+            const message = generatorMessage(
+                `.{firstname}{lastname}`,
+                {
+                    firstname: '{lastname}',
+                    lastname: '{firstname}',
+                },
+            );
+
+            expect(message).toBe(`.{lastname}{firstname}`);
+        });
+
+        it('Insert key of variable in value of other variable 8', () => {
+            const message = generatorMessage(
+                `{firstname}lastname}`,
+                {
+                    firstname: '{lastname}',
+                    lastname: '{firstname}',
+                },
+            );
+
+            expect(message).toBe(`{lastname}lastname}`);
+        });
+
+        it('Insert key of variable in value of other variable 9', () => {
+            const message = generatorMessage(
+                `{firstname}{lastname`,
+                {
+                    firstname: '{lastname}',
+                    lastname: '{firstname}',
+                },
+            );
+
+            expect(message).toBe(`{lastname}{lastname`);
+        });
+
+        it('Insert key of variable in value of other variable 10', () => {
+            const message = generatorMessage(
+                `{k}{l}`,
+                {
+                    k: '{l}',
+                    l: '{k}',
+                },
+            );
+
+            expect(message).toBe(`{l}{k}`);
+        });
     });
 });
