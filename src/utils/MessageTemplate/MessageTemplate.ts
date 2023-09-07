@@ -36,12 +36,7 @@ export default class MessageTemplate {
     private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     private readonly _stateChangeNotify: Function;
     private _lastBlurInformation: IMessageTemplate.LastBlurInformation;
-    private _variables = new Map<string, string>([
-        ['firstname', ''],
-        ['lastname', ''],
-        ['company', ''],
-        ['position', ''],
-    ]);
+    private _variables: Map<string, string>;
 
     /** map-а со значениями полей THEN и ELSE */
     private _mapOfIfThenElseBlocks = new Map<
@@ -53,6 +48,12 @@ export default class MessageTemplate {
         const {
             stateChangeNotify,
             messageTemplateJSON,
+            variablesList = [
+                'firstname',
+                'lastname',
+                'company',
+                'position',
+            ],
         } = options;
 
         this._stateChangeNotify = stateChangeNotify;
@@ -62,12 +63,10 @@ export default class MessageTemplate {
                 ifThenElseBlockInfoListJSON,
                 lastBlurInformation,
                 defaultMessageSnippets,
-                variablesInfoListJSON,
             } = messageTemplateJSON;
 
             this._defaultMessageSnippets = defaultMessageSnippets;
             this._lastBlurInformation = lastBlurInformation;
-            this._variables = new Map(variablesInfoListJSON);
 
             for (const ifThenElseBlockInfoJSON of ifThenElseBlockInfoListJSON) {
                 const {
@@ -77,27 +76,28 @@ export default class MessageTemplate {
 
                 this._mapOfIfThenElseBlocks.set(keyIfThenElseBlockJSON, ifThenElseBlock);
             }
-
-            return;
+        }
+        else {
+            this._defaultMessageSnippets = {
+                // первый блок тем и отличается от THEN/ELSE, что у него пути нет, ведь он первый:)
+                path: void 0,
+                field: {
+                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+                    message: '',
+                    isCanSplit: true,
+                    positionInResultMessage: 0,
+                },
+            };
+            this._lastBlurInformation = {
+                cursorPosition: 0,
+                snippetMessageInformation: {
+                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+                },
+                insertedVariablesVersion: 0,
+            }
         }
 
-        this._defaultMessageSnippets = {
-            // первый блок тем и отличается от THEN/ELSE, что у него пути нет, ведь он первый:)
-            path: void 0,
-            field: {
-                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-                message: '',
-                isCanSplit: true,
-                positionInResultMessage: 0,
-            },
-        };
-        this._lastBlurInformation = {
-            cursorPosition: 0,
-            snippetMessageInformation: {
-                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-            },
-            insertedVariablesVersion: 0,
-        }
+        this._variables = new Map(variablesList.map((key) => [ key, '' ]));
     }
 
     /** Очистить все поля */
@@ -872,7 +872,6 @@ export default class MessageTemplate {
 
     public toJSON(): MessageTemplateJSON {
         const ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[] = [];
-        const variablesInfoListJSON: VariableInfoJSON[] = [ ...this._variables.entries() ];
 
         for (const [keyIfThenElseBlock, ifThenElseBlock] of this._mapOfIfThenElseBlocks.entries()) {
             ifThenElseBlockInfoListJSON.push({
@@ -883,7 +882,6 @@ export default class MessageTemplate {
 
         return {
             ifThenElseBlockInfoListJSON,
-            variablesInfoListJSON,
             lastBlurInformation: this._lastBlurInformation,
             defaultMessageSnippets: this._defaultMessageSnippets,
         }
@@ -897,7 +895,6 @@ export default class MessageTemplate {
             ifThenElseBlockInfoListJSON,
             lastBlurInformation,
             defaultMessageSnippets,
-            variablesInfoListJSON,
         } = messageTemplateJSON;
 
         for (const { key: keyIfThenElseBlock, ifThenElseBlock } of ifThenElseBlockInfoListJSON) {
@@ -924,13 +921,10 @@ export default class MessageTemplate {
             ifThenElseDTOList.push(ifThenElseBlockInfoDTO);
         }
 
-        const variableInfoDTOList: VariableInfoDTO[] = _variablesInfoListJSONToDTO(variablesInfoListJSON);
-
         const messageTemplateDTO = new Array(MessageTemplateDTO_Props.__SIZE__) as MessageTemplateDTO;
 
         messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList] = ifThenElseDTOList;
         messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets] = _messageSnippetsJSONToDTO(defaultMessageSnippets);
-        messageTemplateDTO[MessageTemplateDTO_Props.variablesInfoDTOList] = variableInfoDTOList;
 
         if (lastBlurInformation !== void 0) {
             const {
@@ -964,6 +958,10 @@ export default class MessageTemplate {
         }
 
         return messageTemplateDTO;
+    }
+
+    public variablesListToDTO(): IMessageTemplate.VariablesListDTO {
+        return [ ...this._variables.keys() ];
     }
 
     /**
@@ -1124,12 +1122,17 @@ export default class MessageTemplate {
         return generatorMessage(resultString, Object.fromEntries(this._variables));
     }
 
-    public static fromDTO(messageTemplateDTO: MessageTemplateDTO, stateChangeNotify: Function): MessageTemplate {
+    public static fromDTO(
+        messageTemplateDTO: MessageTemplateDTO,
+        stateChangeNotify: Function,
+        variablesList: IMessageTemplate.VariablesListDTO,
+    ): MessageTemplate {
         const messageTemplateJSON: MessageTemplateJSON = MessageTemplate.dtoToJSON(messageTemplateDTO);
 
         return new MessageTemplate({
             messageTemplateJSON,
             stateChangeNotify,
+            variablesList,
         });
     }
 
@@ -1163,7 +1166,6 @@ export default class MessageTemplate {
                     : void 0,
                 insertedVariablesVersion: lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion],
             },
-            variablesInfoListJSON: _variablesInfoListDTOToJSON(messageTemplateDTO[MessageTemplateDTO_Props.variablesInfoDTOList]),
         };
     }
 

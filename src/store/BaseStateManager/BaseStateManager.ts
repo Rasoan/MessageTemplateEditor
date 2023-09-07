@@ -2,7 +2,6 @@
 
 import {IBaseStateManager} from "./types/BaseStateManager";
 import BaseState from "../BaseState/BaseState";
-import BaseStateLocalStorage from "../../utils/LocalStorage/LocalStorage";
 
 export default abstract class BaseStateManager {
     protected abstract _stateChangeNotify(): void;
@@ -11,16 +10,11 @@ export default abstract class BaseStateManager {
 
     constructor() {
         const stateChangeNotify = () => this._stateChangeNotify();
-        const baseStateString: string | null = BaseStateLocalStorage.getStateString();
         const baseStateOptions = { stateChangeNotify };
-        const baseState = baseStateString
-            ? BaseState.fromDTO(JSON.parse(baseStateString), baseStateOptions)
-            : new BaseState(baseStateOptions)
-        ;
 
         this._proxyState = {
             stateWrapper: {
-                state: baseState,
+                state: new BaseState(baseStateOptions),
             },
             stateChangeNotify,
         };

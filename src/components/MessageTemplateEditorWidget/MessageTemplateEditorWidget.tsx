@@ -10,36 +10,44 @@ import {shallow} from "zustand/shallow";
 
 import "./MessageTemplateEditorWidget.scss";
 import MessageTemplatePreviewWidget from "../MessageTemplatePreviewWidget/MessageTemplatePreviewWidget";
+import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 
 interface MessageTemplateEditorWidgetProps {
-    callbackSave: (previewWidget: string) => Promise<void>;
+    /** асинхронный callback сохранения шаблона */
+    callbackSave: () => Promise<void>;
+    /** массив имён переменных */
+    arrVarNames: string[];
+    /** шаблон сообщения */
+    template?: MessageTemplate;
 }
 
 const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = (props) => {
     const {
         callbackSave,
+        template,
+        arrVarNames: keysOfVariablesList,
     } = props;
     const [
         setIsOpenMessageTemplateEditor,
-        messageTemplate,
         isOpenMessageTemplatePreviewWidget,
         setIsOpenMessageTemplatePreviewWidget,
-        resetMessageTemplate,
-        previewWidget,
     ] = useBaseStore(
         stateManager => [
             stateManager.state.setIsOpenMessageTemplateEditor,
-            stateManager.state.messageTemplate,
             stateManager.state.isOpenMessageTemplatePreviewWidget,
             stateManager.state.setIsOpenMessageTemplatePreviewWidget,
+            //
             stateManager.state.messageTemplate.reset,
             stateManager.state.messageTemplate.previewWidget,
-            //
             stateManager.state.messageTemplate.countIfThenElseBlocks,
             stateManager.state.isOpenMessageTemplateEditor,
         ],
         shallow,
     );
+    const messageTemplate: MessageTemplate = template
+        ? template
+        : useBaseStore(stateManager => stateManager.state.messageTemplate)
+    ;
     const onClickOnVariable = (event: React.MouseEvent<HTMLButtonElement>) => {
         const {
             currentTarget,
@@ -50,7 +58,6 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
 
         messageTemplate.insertVariableInSubMessage(value);
     }
-
     const splitBlockAndInsertIfThenElse = () => {
         try {
             messageTemplate.splitFieldAndInsertIfThenElseBlock();
@@ -59,6 +66,12 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
             alert(error);
         }
     };
+    const handleCloseMessageTemplateEditorWidget = () => {
+        setIsOpenMessageTemplateEditor(false);
+    }
+    const handleOpenMessageTemplateEditorWidget = () => {
+        setIsOpenMessageTemplatePreviewWidget(true);
+    }
 
     return <div
         className={"MessageTemplateEditorWidget"}
@@ -73,7 +86,7 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
         >
             <>
                 {
-                    messageTemplate.variablesKeysList.map((variableKey, index) => <button
+                    keysOfVariablesList.map((variableKey, index) => <button
                         className={'variablesContainer__variableButton variableButton'}
                         key={variableKey + index}
                         value={variableKey}
@@ -113,7 +126,7 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
             />
         </div>
         {isOpenMessageTemplatePreviewWidget ? <>
-                <MessageTemplatePreviewWidget/>
+                <MessageTemplatePreviewWidget />
             </>
             : null}
         <div
@@ -121,22 +134,20 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
         >
             <button
                 className={'controlPanel__controlButton controlButton'}
-                onClick={() => callbackSave(previewWidget)}
+                onClick={callbackSave}
             >
                 Save
             </button>
             <button
                 className={'controlPanel__controlButton controlButton'}
-                onClick={() => setIsOpenMessageTemplatePreviewWidget(true)}
+                onClick={handleOpenMessageTemplateEditorWidget}
             >
                 Preview
             </button>
             <button
+                title={'Перед нажатием убедитесь, что сохранили редактор шаблона сообщений!'}
                 className={'controlPanel__controlButton controlButton'}
-                onClick={() => {
-                    setIsOpenMessageTemplateEditor(false);
-                    resetMessageTemplate();
-                }}
+                onClick={handleCloseMessageTemplateEditorWidget}
             >
                 Close
             </button>

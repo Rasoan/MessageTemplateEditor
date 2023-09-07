@@ -1,39 +1,27 @@
 'use strict';
 
 import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
-import {BaseStateDTO, BaseStateDTO_Props, BaseStateJSON, IBaseState} from "./types/BaseState";
-import BaseStateLocalStorage from "../../utils/LocalStorage/LocalStorage";
+import {IBaseState} from "./types/BaseState";
+import ProxyLocalStorage from "../../utils/ProxyLocalStorage/ProxyLocalStorage";
+import {IMessageTemplate, MessageTemplateDTO} from "../../utils/MessageTemplate/types/MessageTemplate";
 
 export default class BaseState {
     private _stateChangeNotify: Function;
 
-    public isOpenMessageTemplateEditor: boolean;
-    public isOpenMessageTemplatePreviewWidget: boolean;
+    public isOpenMessageTemplateEditor: boolean = false;
+    public isOpenMessageTemplatePreviewWidget: boolean = false;
     public messageTemplate: MessageTemplate;
+    public arrVarNames: string[];
 
     constructor(options: IBaseState.Options) {
         const {
             stateChangeNotify,
-            baseStateJSON
         } = options;
 
         this._stateChangeNotify = stateChangeNotify;
 
-        if (baseStateJSON) {
-            const {
-                isOpenMessageTemplateEditor,
-                messageTemplate,
-                isOpenMessageTemplatePreviewWidget,
-            } = baseStateJSON;
-            this.isOpenMessageTemplateEditor = isOpenMessageTemplateEditor;
-            this.messageTemplate = messageTemplate;
-            this.isOpenMessageTemplatePreviewWidget = isOpenMessageTemplatePreviewWidget;
-
-            return;
-        }
-
-        this.isOpenMessageTemplateEditor = false;
-        this.messageTemplate = new MessageTemplate({ stateChangeNotify });
+        this.messageTemplate = createMessageTemplate({ stateChangeNotify });
+        this.arrVarNames = this.messageTemplate.variablesKeysList;
     }
 
     public setIsOpenMessageTemplateEditor = (isOpenMessageTemplateEditor: boolean) => {
@@ -48,35 +36,31 @@ export default class BaseState {
         this._stateChangeNotify();
     }
 
-    public toDTO() {
-        const baseStateDTO = new Array(BaseStateDTO_Props.__SIZE__) as BaseStateDTO;
+    public recreateMessageTemplate = () => {
+        this.messageTemplate = createMessageTemplate({
+            stateChangeNotify: this._stateChangeNotify,
+        });
 
-        baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplateEditor] = this.isOpenMessageTemplateEditor;
-        baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplatePreviewWidget] = this.isOpenMessageTemplatePreviewWidget;
-        baseStateDTO[BaseStateDTO_Props.messageTemplate] = this.messageTemplate.toDTO();
-
-        return baseStateDTO;
+        this._stateChangeNotify();
     }
+}
 
-    public static dtoToJSON(baseStateDTO: BaseStateDTO, stateChangeNotify: Function): BaseStateJSON {
-        return {
-            isOpenMessageTemplateEditor: baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplateEditor],
-            messageTemplate: MessageTemplate.fromDTO(baseStateDTO[BaseStateDTO_Props.messageTemplate], stateChangeNotify),
-            isOpenMessageTemplatePreviewWidget: baseStateDTO[BaseStateDTO_Props.isOpenMessageTemplatePreviewWidget],
-        }
-    }
+function createMessageTemplate(options: IBaseState.Options): MessageTemplate {
+    const {
+        stateChangeNotify,
+    } = options;
+    const messageTemplateDTO: MessageTemplateDTO | null = JSON.parse(ProxyLocalStorage.getMessageTemplate());
+    const variablesList: IMessageTemplate.VariablesListDTO | null = JSON.parse(ProxyLocalStorage.getKeysVariablesList());
 
-    public static fromDTO(baseStateDTO: BaseStateDTO, options: IBaseState.Options): BaseState {
-        const {
+    return messageTemplateDTO
+        ? MessageTemplate.fromDTO(
+            messageTemplateDTO,
             stateChangeNotify,
-        } = options;
-        const baseStateJSON = BaseState.dtoToJSON(baseStateDTO, stateChangeNotify);
-
-        const newOptions = {
-            ...options,
-            baseStateJSON,
-        };
-
-        return new BaseState(newOptions);
-    }
+            variablesList || void 0,
+        )
+        : new MessageTemplate({
+            stateChangeNotify,
+            variablesList: variablesList || void 0,
+        })
+    ;
 }

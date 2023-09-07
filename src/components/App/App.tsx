@@ -7,22 +7,38 @@ import {useMemo, useState} from "react";
 import MessageTemplateEditorWidget from "../MessageTemplateEditorWidget/MessageTemplateEditorWidget";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
+import ProxyLocalStorage from "../../utils/ProxyLocalStorage/ProxyLocalStorage";
 
 export default function App(): JSX.Element {
     const [
         isOpenMessageTemplateEditor,
         toggleIsOpenMessageTemplateEditor,
+        recreateMessageTemplate,
+        messageTemplate,
+        arrVarNames,
     ] = useBaseStore(
         stateManager => {
             return [
                 stateManager.state.isOpenMessageTemplateEditor,
                 stateManager.state.setIsOpenMessageTemplateEditor,
+                stateManager.state.recreateMessageTemplate,
+                stateManager.state.messageTemplate,
+                stateManager.state.arrVarNames,
             ];
         },
         shallow,
     );
-    const callbackSave = async (message: string): Promise<void> => {
-        console.log(message);
+    const callbackSave = async (): Promise<void> => {
+        ProxyLocalStorage.setMessageTemplate(
+            JSON.stringify(messageTemplate.toDTO()),
+        );
+        ProxyLocalStorage.setVariables(
+            JSON.stringify(messageTemplate.variablesListToDTO()),
+        );
+    }
+    const handleOpenMessageTemplateEditor = () => {
+        recreateMessageTemplate();
+        toggleIsOpenMessageTemplateEditor(true);
     }
 
     return <div
@@ -30,10 +46,14 @@ export default function App(): JSX.Element {
     >
         {
             isOpenMessageTemplateEditor
-                ? <MessageTemplateEditorWidget callbackSave={callbackSave} />
+                ? <MessageTemplateEditorWidget
+                    callbackSave={callbackSave}
+                    arrVarNames={arrVarNames}
+                    template={messageTemplate}
+                />
                 : <button
                 className={'App__toggleMessageTemplate toggleMessageTemplate'}
-                    onClick={() => toggleIsOpenMessageTemplateEditor(true)}
+                    onClick={handleOpenMessageTemplateEditor}
                 >
                     Message Editor
                 </button>

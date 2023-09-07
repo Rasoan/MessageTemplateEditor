@@ -2,8 +2,11 @@
 export namespace IMessageTemplate {
     interface Options {
         stateChangeNotify: Function;
+        variablesList?: VariablesListDTO;
         messageTemplateJSON?: MessageTemplateJSON;
     }
+
+    type VariablesListDTO = string[];
 
     /** Части сообщения, некоторые из которых попадут в результирующее сообщение (блок IF_THEN_ELSE) */
     interface IfThenElseBlock {
@@ -191,16 +194,14 @@ export const enum MessageTemplateDTO_Props {
     ifThenElseDTOList = 0,
     defaultMessageSnippets = 1,
     lastBlurSnippetMessageInformation = 2,
-    variablesInfoDTOList = 3,
 
-    __SIZE__ = 4,
+    __SIZE__ = 3,
 }
 
 export type MessageTemplateDTO = [
     ifThenElseDTOList: IfThenElseBlockInfoDTO[],
     defaultMessageSnippets: MessageSnippetsDTO,
     lastBlurInformation: LastBlurInformationDTO,
-    variablesInfoDTOList: VariableInfoDTO[]
 ];
 
 export const enum LastBlurSnippetMessageInformationDTO_Props {
@@ -237,5 +238,4 @@ export interface MessageTemplateJSON {
     ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[];
     defaultMessageSnippets: IMessageTemplate.MessageSnippets;
     lastBlurInformation: IMessageTemplate.LastBlurInformation;
-    variablesInfoListJSON: VariableInfoJSON[];
 }

@@ -8,9 +8,13 @@ import {
 import ZustandStateManager from "./ZustandStateManager/ZustandStateManager";
 import {immer} from "zustand/middleware/immer";
 import {IZustandStateManager} from "./ZustandStateManager/types/ZustandStateManager";
-import StateLocalStorage from "../utils/LocalStorage/LocalStorage";
+import ProxyLocalStorage from "../utils/ProxyLocalStorage/ProxyLocalStorage";
 
-/** Код взял [здесь]{@link https://docs.pmnd.rs/zustand/guides/typescript#middleware-that-doesn't-change-the-store-type} */
+/**
+ * сначала immer(devtools(эта функция()))
+ *
+ * Код взял [здесь]{@link https://docs.pmnd.rs/zustand/guides/typescript#middleware-that-doesn't-change-the-store-type}
+ */
 const customMiddleware: IZustandStateManager.CustomMiddleware = (f, name) => (set, get, store) => {
 
     // Вклинились в set() и встроили свой код
@@ -19,9 +23,10 @@ const customMiddleware: IZustandStateManager.CustomMiddleware = (f, name) => (se
 
         const zustandStateManager = get() as ZustandStateManager;
 
-        StateLocalStorage.setStateString(
-            JSON.stringify(zustandStateManager.state.toDTO())
-        );
+        // здесь по onChange можно что-то сохранять
+        // StateLocalStorage.setStateString(
+        //     JSON.stringify(zustandStateManager.state.toDTO())
+        // );
     }
 
     store.setState = proxySet;
@@ -32,11 +37,9 @@ const customMiddleware: IZustandStateManager.CustomMiddleware = (f, name) => (se
 export default create<ZustandStateManager>()(
     immer(
         devtools(
-            customMiddleware(
-                (setState) => new ZustandStateManager({
-                    setState: setState as IZustandStateManager.SetState,
-                }),
-            ),
+            (setState) => new ZustandStateManager({
+                setState: setState as IZustandStateManager.SetState,
+            }),
             { serialize: true },
         )
     )
