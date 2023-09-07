@@ -15,76 +15,46 @@ import {IMessageTemplate} from "./MessageTemplate/types/MessageTemplate";
  * так и отсутствовать необходимые - будут интерпретироваться, как пустые значения.
  */
 export function generatorMessage(template: string, values: Record<string, string>): string {
-    /**
-     * Массив срезов строки, выглядит так:
-     * Входная строка: "Привет, {firstname}, как дела? Пойдём завтра гулять в {placeName}? Завтра я буду в {time} занят"
-     * Элементы массива:
-     * 1) { key: "firstname", segmentOfMessageResult: "Привет, {firstname}" }
-     * 2) { key: "placename", segmentOfMessageResult: ", как дела? Пойдём завтра гулять в {placeName}" }
-     * 3) { key: "time", segmentOfMessageResult: "? Завтра я буду в {time}" }
-     * Окончание строки - " занят" докинется в результирующую строку позже.
+    /*
+      - (?:) - "?:" для того, что бы не сохранял скобочные группы;
+      - (?!{) - что бы отбросить открывающую скобку "{" внутри скобок, что бы извлечь из "{first{lastname}name}" - "{lastname}",
+      а не "{first{lastname}";
+      - () = всё выражение завернули в (), что бы получить результат split ВМЕСТЕ с разделителем,
+      например, мы "привет, как, дела?".split(","), что получим? - ["привет", " как", " дела?"], но мы хотим получить
+      вот так - ["привет", ",", " как", ",", " дела?"] - не потерять разделитель, запятую тоже в массив докинуть хотим.
     */
-    let substringsInfoListWithKeys: {
-        /** Ключ переменной, которую будем вставлять в строку */
-        key: string;
-        /** Срез строки с наконечником содержащим переменную */
+    const arrayOfSubstrings = template.split(/({(?:\S(?!{))+?})/);
+
+    const substringsInfoList: {
+        /** подстрока */
         substring: string;
-    }[] = [];
-
-    /* Длина подстроки **/
-    let currentSubstringLength = 0;
-
-    for (const [ key, value ] of Object.entries(values)) {
-        let keyInStringPosition = 0;
-
-        // цикл обязательно прервётся, когда все переменные будут найдены
-        while (true) {
-            keyInStringPosition = template.indexOf(`{${key}}`, keyInStringPosition);
-
-            // условие выхода из цикла поиска вхождений ключа в строке
-            if (!~keyInStringPosition) {
-                break;
+        /** ключ (void 0 если заменять не надо) */
+        key?: string;
+    }[] = arrayOfSubstrings.map(substring => {
+        for (const variableKey of Object.keys(values)) {
+            if (`{${variableKey}}` === substring && values[variableKey] !== '') {
+                return {
+                    substring,
+                    key: variableKey,
+                }
             }
-
-            const {
-                substring: {
-                    length: lastSubstringLength = 0,
-                } = {},
-            } = substringsInfoListWithKeys[substringsInfoListWithKeys.length - 1/** последний элемент */] || {};
-
-            currentSubstringLength = keyInStringPosition + key.length + 2/* 2 фигурные скобки */;
-
-            substringsInfoListWithKeys.push({
-                key,
-                substring: template.slice(lastSubstringLength, currentSubstringLength),
-            });
-
-            // перекидываем стартовую позицию для поиска вхождения на позицию вперёд, что бы не находить постоянно один и тот же ключ в string.indexOf
-            keyInStringPosition++;
-
-            // fixme: если этот if раскомментировать, то нарушится ТЗ - 100% покрытие тестами generatorMessage(),
-            //  но этот if НЕЛЬЗЯ закомментировать, поскольку должен быть предохранитель от зацикливания.
-            // любое число в string.indexOf меньше длины самой строки, а если вышло не так, то точно зациклились
-            // if (keyInStringPosition > template.length) {
-            //     throw new Error('The loop with the replacement of variables looped!');
-            // }
         }
-    }
 
-    const substringResult = substringsInfoListWithKeys.map(substringInfo => {
+        return { substring };
+    });
+
+    return substringsInfoList.map(substringInfo => {
         const {
             key,
             substring,
         } = substringInfo;
 
-        return substring.slice(
-            /* с начала строки */
-            0,
-            substring.length - key.length - 2/* 2 фигурные скобки от ключа - "{" "}" */,
-        ) + values[key];
-    }).join('');
+        if (key !== void 0) {
+            return values[key];
+        }
 
-    return substringResult + template.slice(currentSubstringLength, template.length);
+        return substring;
+    }).join('');
 }
 
 /**

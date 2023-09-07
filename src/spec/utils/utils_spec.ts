@@ -15,6 +15,18 @@ describe('generatorMessage', () => {
         expect(message).toBe(`Hello Victor Kram!`);
     });
 
+    it('Default case with \n', () => {
+        const message = generatorMessage(
+            `Hello {firstname}\n{lastname}!`,
+            {
+                firstname: 'Victor',
+                lastname: 'Kram',
+            },
+        );
+
+        expect(message).toBe(`Hello Victor\nKram!`);
+    });
+
     it('empty message', () => {
         const message = generatorMessage(
             '',
@@ -55,6 +67,48 @@ describe('generatorMessage', () => {
         );
 
         expect(message).toBe('Hello world!');
+    });
+
+    it('Map of variables with empty variables values', () => {
+        const message = generatorMessage(
+            "Привет {firstname}{lastname}{company}{position}{company}{position} С уважением, Араик...",
+            {
+                firstname: "",
+                lastname: "",
+                company: "",
+                position: "",
+            },
+        );
+
+        expect(message).toBe("Привет {firstname}{lastname}{company}{position}{company}{position} С уважением, Араик...");
+    });
+
+    it('Empty map of variables with empty keys', () => {
+        const message = generatorMessage(
+            "Привет {firstname}{lastname}{company}{position}{company}{position} С уважением, Араик...",
+            {
+                "": "firstname",
+                "": "lastname",
+                "": "company",
+                "": "position",
+            },
+        );
+
+        expect(message).toBe("Привет {firstname}{lastname}{company}{position}{company}{position} С уважением, Араик...");
+    });
+
+    it('Two variables filled and two variables not filled', () => {
+        const message = generatorMessage(
+            "Привет {firstname}{lastname}{firstname}",
+            {
+                "firstname": "Araik",
+                "lastname": "ого",
+                "company": "",
+                "position": ""
+            },
+        );
+
+        expect(message).toBe("Привет AraikогоAraik");
     });
 
     it('Extra variables in map of values', () => {
@@ -256,6 +310,39 @@ describe('generatorMessage', () => {
             );
 
             expect(message).toBe(`{l}{k}`);
+        });
+
+        it('Variable in variable', () => {
+            const message = generatorMessage(
+                `{first{lastname}name}`,
+                {
+                    lastname: 'Rasayan',
+                },
+            );
+
+            expect(message).toBe(`{firstRasayanname}`);
+        });
+
+        it('Variable in variable 2', () => {
+            const message = generatorMessage(
+                `Привет, как дела? есть такие {интересные скобки, {firstname}, которые} тебе всё сломают)`,
+                {
+                    firstname: 'Araik',
+                },
+            );
+
+            expect(message).toBe(`Привет, как дела? есть такие {интересные скобки, Araik, которые} тебе всё сломают)`);
+        });
+
+        it('Variable in variable with space', () => {
+            const message = generatorMessage(
+                `Привет, как дела? есть такие {интересные скобки, {firstname }, которые} тебе всё сломают)`,
+                {
+                    firstname: 'Araik',
+                },
+            );
+
+            expect(message).toBe(`Привет, как дела? есть такие {интересные скобки, {firstname }, которые} тебе всё сломают)`);
         });
     });
 });
