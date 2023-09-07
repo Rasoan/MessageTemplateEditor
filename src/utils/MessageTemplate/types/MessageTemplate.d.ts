@@ -12,8 +12,9 @@ export namespace IMessageTemplate {
     interface IfThenElseBlock {
         /** Путь к ifThenElse блоку. */
         path?: PathToBlock | void,
+        // todo: переименовать везде, что бы было тоже "conditionalIf"
         /** Название переменной в IF от которой будет зависеть этот блок */
-        dependencyVariableName: string;
+        conditionalIf: string;
         /** Блок THEN */
         messageSnippets_THEN: MessageSnippets;
         /** Блок ELSE */

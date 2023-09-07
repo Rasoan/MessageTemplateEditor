@@ -23,7 +23,7 @@ import {
     VariableInfoJSON,
 } from "./types/MessageTemplate";
 import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../constants";
-import {generatorMessage} from "../utils";
+import {generatorMessage, REGEXP_FOR_FIND_KEYS_OF_VARIABLES} from "../utils";
 
 /** Количество добавляемых текстовых полей (THEN + ELSE). */
 const QUANTITY_NEW_FIELDS = 3;
@@ -215,8 +215,8 @@ export default class MessageTemplate {
 
             // если типа поля нет, то это IF у ifThenElse
             if (!lastBlur_fieldType) {
-                ifThenElse.dependencyVariableName = insertSubstringInString(
-                    ifThenElse.dependencyVariableName,
+                ifThenElse.conditionalIf = insertSubstringInString(
+                    ifThenElse.conditionalIf,
                     variableWithModifier,
                     lastBlur_cursorPosition
                 );
@@ -493,7 +493,7 @@ export default class MessageTemplate {
             .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
         ;
 
-        return ifThenElseBlock.dependencyVariableName;
+        return ifThenElseBlock.conditionalIf;
     }
 
     public getMessageSnippets() {
@@ -654,7 +654,7 @@ export default class MessageTemplate {
 
         _assertIsIfThenElseBlock(ifThenElseBlock);
 
-        ifThenElseBlock.dependencyVariableName = variableName;
+        ifThenElseBlock.conditionalIf = variableName;
 
         this._stateChangeNotify();
     }
@@ -674,7 +674,7 @@ export default class MessageTemplate {
 
         const newIfThenElseBlock: IMessageTemplate.IfThenElseBlock = {
             path,
-            dependencyVariableName: '',
+            conditionalIf: '',
             messageSnippets_THEN: {
                 blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.THEN,
                 path: MessageTemplate.createPath(MESSAGE_TEMPLATE_BLOCK_TYPE.THEN, path),
@@ -908,12 +908,12 @@ export default class MessageTemplate {
                 messageSnippets_THEN,
                 messageSnippets_ELSE,
                 path,
-                dependencyVariableName,
+                conditionalIf,
             } = ifThenElseBlock;
 
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN] = _messageSnippetsJSONToDTO(messageSnippets_THEN);
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE] = _messageSnippetsJSONToDTO(messageSnippets_ELSE);
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName] = dependencyVariableName;
+            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName] = conditionalIf;
             ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path] = path;
 
             ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO] = ifThenElseBlockDTO;
@@ -1049,10 +1049,10 @@ export default class MessageTemplate {
                     { force: true },
                 ) as IMessageTemplate.IfThenElseBlock;
                 const {
-                    dependencyVariableName,
+                    conditionalIf,
                 } = parentIfThenElse;
                 /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
-                const isEmptyDependencyVariable = !filledVariablesList.includes(dependencyVariableName);
+                const isEmptyDependencyVariable = !filledVariablesList.includes(conditionalIf);
 
                 if (parentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
                     if (!isEmptyDependencyVariable) {
@@ -1080,16 +1080,46 @@ export default class MessageTemplate {
             const {
                 messageSnippets_THEN,
                 messageSnippets_ELSE,
-                dependencyVariableName,
+                conditionalIf,
             } = currentIfThenElse;
-            /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
-            const isEmptyDependencyVariable = !filledVariablesList.includes(dependencyVariableName);
+            const listOfSubstringsOfConditionalIf = conditionalIf.split(REGEXP_FOR_FIND_KEYS_OF_VARIABLES)
+                // почистим пустые строки
+                .filter(substring => substring !== '')
+            ;
+            /** счётчик заполненных переменных из текста из блока if */
+            let countFilledVariables = 0;
+            let isPushedThenOrElseBlock = false;
+            for (const substringOfConditionalIf of listOfSubstringsOfConditionalIf) {
+                const isKeyOfVariable = Array.from(this._variables.keys())
+                    .map(variableKey => `{${variableKey}}`)
+                    .includes(substringOfConditionalIf)
+                ;
 
-            if (isEmptyDependencyVariable) {
-                resultBlocksOfIfThenElseList.push(messageSnippets_ELSE);
+                // если текущая строка - ключ переменной
+                if (isKeyOfVariable) {
+                    if (filledVariablesList.includes(substringOfConditionalIf)) {
+                        countFilledVariables++;
+                    }
+                }
+                // любой текст если есть в if отличающийся от переменной - значит это true
+                else {
+                    resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+
+                    isPushedThenOrElseBlock = true;
+
+                    break;
+                }
             }
-            else {
-                resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+
+            if (!isPushedThenOrElseBlock) {
+                // если только заполненные переменные в If, то это true
+                if (countFilledVariables === listOfSubstringsOfConditionalIf.length) {
+                    resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+                }
+                // иначе только переменные и среди них есть не заполненные, значит false
+                else {
+                    resultBlocksOfIfThenElseList.push(messageSnippets_ELSE);
+                }
             }
         }
 
@@ -1148,7 +1178,7 @@ export default class MessageTemplate {
                 return {
                     ifThenElseBlock: {
                         path: _nullToVoid0(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path]),
-                        dependencyVariableName: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
+                        conditionalIf: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
                         messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
                         messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
                     },
@@ -1226,12 +1256,12 @@ function _checkIsIfThenElseBlock(
     }
 
     const {
-        dependencyVariableName,
+        conditionalIf,
         messageSnippets_THEN,
         messageSnippets_ELSE,
     } = (ifThenElseBlock || {}) as IMessageTemplate.IfThenElseBlock;
 
-    return !(dependencyVariableName === void 0
+    return !(conditionalIf === void 0
         || messageSnippets_THEN === void 0
         || messageSnippets_ELSE === void 0)
     ;

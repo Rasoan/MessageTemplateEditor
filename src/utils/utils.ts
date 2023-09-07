@@ -4,6 +4,16 @@ import * as React from "react";
 import MessageTemplate from "./MessageTemplate/MessageTemplate";
 import {IMessageTemplate} from "./MessageTemplate/types/MessageTemplate";
 
+ /*
+  - (?:) - "?:" для того, что бы не сохранял скобочные группы;
+  - (?!{) - что бы отбросить открывающую скобку "{" внутри скобок, что бы извлечь из "{first{lastname}name}" - "{lastname}",
+  а не "{first{lastname}";
+  - () = всё выражение завернули в (), что бы получить результат split ВМЕСТЕ с разделителем,
+  например, мы "привет, как, дела?".split(","), что получим? - ["привет", " как", " дела?"], но мы хотим получить
+  вот так - ["привет", ",", " как", ",", " дела?"] - не потерять разделитель, запятую тоже в массив докинуть хотим.
+*/
+export const REGEXP_FOR_FIND_KEYS_OF_VARIABLES = /({(?:\S(?!{))+?})/;
+
 /**
  * Генератор сообщений, заменяет в тексте названия переменных значениями переменных,
  * в случае, если таковы были переданы в map-у "values", если же в "values" переменная не найдена,
@@ -15,15 +25,7 @@ import {IMessageTemplate} from "./MessageTemplate/types/MessageTemplate";
  * так и отсутствовать необходимые - будут интерпретироваться, как пустые значения.
  */
 export function generatorMessage(template: string, values: Record<string, string>): string {
-    /*
-      - (?:) - "?:" для того, что бы не сохранял скобочные группы;
-      - (?!{) - что бы отбросить открывающую скобку "{" внутри скобок, что бы извлечь из "{first{lastname}name}" - "{lastname}",
-      а не "{first{lastname}";
-      - () = всё выражение завернули в (), что бы получить результат split ВМЕСТЕ с разделителем,
-      например, мы "привет, как, дела?".split(","), что получим? - ["привет", " как", " дела?"], но мы хотим получить
-      вот так - ["привет", ",", " как", ",", " дела?"] - не потерять разделитель, запятую тоже в массив докинуть хотим.
-    */
-    const arrayOfSubstrings = template.split(/({(?:\S(?!{))+?})/);
+    const arrayOfSubstrings = template.split(REGEXP_FOR_FIND_KEYS_OF_VARIABLES);
 
     const substringsInfoList: {
         /** подстрока */
