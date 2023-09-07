@@ -870,100 +870,6 @@ export default class MessageTemplate {
         this._stateChangeNotify();
     }
 
-    public toJSON(): MessageTemplateJSON {
-        const ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[] = [];
-
-        for (const [keyIfThenElseBlock, ifThenElseBlock] of this._mapOfIfThenElseBlocks.entries()) {
-            ifThenElseBlockInfoListJSON.push({
-                ifThenElseBlock,
-                key: keyIfThenElseBlock,
-            });
-        }
-
-        return {
-            ifThenElseBlockInfoListJSON,
-            lastBlurInformation: this._lastBlurInformation,
-            defaultMessageSnippets: this._defaultMessageSnippets,
-        }
-    }
-
-    public toDTO(): MessageTemplateDTO {
-        const messageTemplateJSON = this.toJSON();
-
-        const ifThenElseDTOList: IfThenElseBlockInfoDTO[] = [];
-        const {
-            ifThenElseBlockInfoListJSON,
-            lastBlurInformation,
-            defaultMessageSnippets,
-        } = messageTemplateJSON;
-
-        for (const { key: keyIfThenElseBlock, ifThenElseBlock } of ifThenElseBlockInfoListJSON) {
-            const ifThenElseBlockInfoDTO = new Array(IfThenElseBlockInfoDTO_Props.__SIZE__) as IfThenElseBlockInfoDTO;
-
-            ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key] = keyIfThenElseBlock;
-
-            const ifThenElseBlockDTO = new Array(IfThenElseBlockDTO_Props.__SIZE__) as IfThenElseBlockDTO;
-
-            const {
-                messageSnippets_THEN,
-                messageSnippets_ELSE,
-                path,
-                conditionalIf,
-            } = ifThenElseBlock;
-
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN] = _messageSnippetsJSONToDTO(messageSnippets_THEN);
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE] = _messageSnippetsJSONToDTO(messageSnippets_ELSE);
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName] = conditionalIf;
-            ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path] = path;
-
-            ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO] = ifThenElseBlockDTO;
-
-            ifThenElseDTOList.push(ifThenElseBlockInfoDTO);
-        }
-
-        const messageTemplateDTO = new Array(MessageTemplateDTO_Props.__SIZE__) as MessageTemplateDTO;
-
-        messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList] = ifThenElseDTOList;
-        messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets] = _messageSnippetsJSONToDTO(defaultMessageSnippets);
-
-        if (lastBlurInformation !== void 0) {
-            const {
-                pathToIfThenElseBlock,
-                cursorPosition,
-                snippetMessageInformation,
-                insertedVariablesVersion,
-            } = lastBlurInformation;
-
-            const lastBlurInformationDTO = new Array(LastBlurInformationDTO_Props.__SIZE__) as LastBlurInformationDTO;
-
-            if (snippetMessageInformation) {
-                const {
-                    fieldType,
-                    blockType,
-                } = snippetMessageInformation;
-
-                const lastBlurSnippetMessageInformationDTO = new Array(LastBlurSnippetMessageInformationDTO_Props.__SIZE__) as LastBlurSnippetMessageInformationDTO;
-
-                lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType] = blockType;
-                lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType] = fieldType;
-
-                lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO] = lastBlurSnippetMessageInformationDTO;
-            }
-
-            lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition] = cursorPosition;
-            lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
-            lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion] = insertedVariablesVersion;
-
-            messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = lastBlurInformationDTO;
-        }
-
-        return messageTemplateDTO;
-    }
-
-    public variablesListToDTO(): IMessageTemplate.VariablesListDTO {
-        return [ ...this._variables.keys() ];
-    }
-
     /**
      * Проверить текстовое поле на то, что последний раз курсор был именно в нём
      *
@@ -1152,6 +1058,110 @@ export default class MessageTemplate {
         return generatorMessage(resultString, Object.fromEntries(this._variables));
     }
 
+    public variablesListToDTO(): IMessageTemplate.VariablesListDTO {
+        return [ ...this._variables.keys() ];
+    }
+
+    public toJSON(): MessageTemplateJSON {
+        const ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[] = [];
+
+        for (const [
+            keyIfThenElseBlock,
+            ifThenElseBlock
+        ] of this._mapOfIfThenElseBlocks.entries()) {
+            ifThenElseBlockInfoListJSON.push({
+                ifThenElseBlock,
+                key: keyIfThenElseBlock,
+            });
+        }
+
+        return {
+            ifThenElseBlockInfoListJSON,
+            lastBlurInformation: this._lastBlurInformation,
+            defaultMessageSnippets: this._defaultMessageSnippets,
+        }
+    }
+
+    // todo: восстановить DTO
+    public toDTO(): MessageTemplateDTO {
+        const messageTemplateJSON = this.toJSON();
+
+        return messageTemplateJSON as unknown as MessageTemplateDTO;
+    }
+    // public toDTO(): MessageTemplateDTO {
+    //     const messageTemplateJSON = this.toJSON();
+    //
+    //     const ifThenElseDTOList: IfThenElseBlockInfoDTO[] = [];
+    //     const {
+    //         ifThenElseBlockInfoListJSON,
+    //         lastBlurInformation,
+    //         defaultMessageSnippets,
+    //     } = messageTemplateJSON;
+    //
+    //     for (const { key: keyIfThenElseBlock, ifThenElseBlock } of ifThenElseBlockInfoListJSON) {
+    //         const ifThenElseBlockInfoDTO = new Array(IfThenElseBlockInfoDTO_Props.__SIZE__) as IfThenElseBlockInfoDTO;
+    //
+    //         ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key] = keyIfThenElseBlock;
+    //
+    //         const ifThenElseBlockDTO = new Array(IfThenElseBlockDTO_Props.__SIZE__) as IfThenElseBlockDTO;
+    //
+    //         const {
+    //             messageSnippets_THEN,
+    //             messageSnippets_ELSE,
+    //             path,
+    //             conditionalIf,
+    //         } = ifThenElseBlock;
+    //
+    //         ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN] = _messageSnippetsJSONToDTO(messageSnippets_THEN);
+    //         ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE] = _messageSnippetsJSONToDTO(messageSnippets_ELSE);
+    //         ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName] = conditionalIf;
+    //         ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path] = path;
+    //
+    //         ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO] = ifThenElseBlockDTO;
+    //
+    //         ifThenElseDTOList.push(ifThenElseBlockInfoDTO);
+    //     }
+    //
+    //     const messageTemplateDTO = new Array(MessageTemplateDTO_Props.__SIZE__) as MessageTemplateDTO;
+    //
+    //     messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList] = ifThenElseDTOList;
+    //     messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets] = _messageSnippetsJSONToDTO(defaultMessageSnippets);
+    //
+    //     if (lastBlurInformation !== void 0) {
+    //         const {
+    //             pathToIfThenElseBlock,
+    //             cursorPosition,
+    //             snippetMessageInformation,
+    //             insertedVariablesVersion,
+    //         } = lastBlurInformation;
+    //
+    //         const lastBlurInformationDTO = new Array(LastBlurInformationDTO_Props.__SIZE__) as LastBlurInformationDTO;
+    //
+    //         if (snippetMessageInformation) {
+    //             const {
+    //                 fieldType,
+    //                 blockType,
+    //             } = snippetMessageInformation;
+    //
+    //             const lastBlurSnippetMessageInformationDTO = new Array(LastBlurSnippetMessageInformationDTO_Props.__SIZE__) as LastBlurSnippetMessageInformationDTO;
+    //
+    //             lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType] = blockType;
+    //             lastBlurSnippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType] = fieldType;
+    //
+    //             lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO] = lastBlurSnippetMessageInformationDTO;
+    //         }
+    //
+    //         lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition] = cursorPosition;
+    //         lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock] = pathToIfThenElseBlock;
+    //         lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion] = insertedVariablesVersion;
+    //
+    //         messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation] = lastBlurInformationDTO;
+    //     }
+    //
+    //     return messageTemplateDTO;
+    // }
+
+    // todo: восстановить DTO
     public static fromDTO(
         messageTemplateDTO: MessageTemplateDTO,
         stateChangeNotify: Function,
@@ -1165,39 +1175,56 @@ export default class MessageTemplate {
             variablesList,
         });
     }
+    // public static fromDTO(
+    //     messageTemplateDTO: MessageTemplateDTO,
+    //     stateChangeNotify: Function,
+    //     variablesList: IMessageTemplate.VariablesListDTO,
+    // ): MessageTemplate {
+    //     const messageTemplateJSON: MessageTemplateJSON = MessageTemplate.dtoToJSON(messageTemplateDTO);
+    //
+    //     return new MessageTemplate({
+    //         messageTemplateJSON,
+    //         stateChangeNotify,
+    //         variablesList,
+    //     });
+    // }
 
+    // todo: восстановить DTO
     static dtoToJSON(messageTemplateDTO: MessageTemplateDTO): MessageTemplateJSON {
-        const lastBlurInformationDTO: LastBlurInformationDTO = messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation];
-        const snippetMessageInformationDTO: LastBlurSnippetMessageInformationDTO | void = lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO];
-
-        return {
-            defaultMessageSnippets: _messageSnippetsDTOtoJSON(messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets]),
-            ifThenElseBlockInfoListJSON: messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList].map((ifThenElseBlockInfoDTO: IfThenElseBlockInfoDTO) => {
-                const ifThenElseBlockDTO: IfThenElseBlockDTO = ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO];
-
-                return {
-                    ifThenElseBlock: {
-                        path: _nullToVoid0(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path]),
-                        conditionalIf: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
-                        messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
-                        messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
-                    },
-                    key: ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key],
-                };
-            }),
-            lastBlurInformation: {
-                pathToIfThenElseBlock: _nullToVoid0(lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock]),
-                cursorPosition: lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition],
-                snippetMessageInformation: snippetMessageInformationDTO
-                    ? {
-                        fieldType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType]),
-                        blockType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType]),
-                    }
-                    : void 0,
-                insertedVariablesVersion: lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion],
-            },
-        };
+        return messageTemplateDTO as unknown as MessageTemplateJSON;
     }
+    // static dtoToJSON(messageTemplateDTO: MessageTemplateDTO): MessageTemplateJSON {
+    //     const lastBlurInformationDTO: LastBlurInformationDTO = messageTemplateDTO[MessageTemplateDTO_Props.lastBlurSnippetMessageInformation];
+    //     const snippetMessageInformationDTO: LastBlurSnippetMessageInformationDTO | void = lastBlurInformationDTO[LastBlurInformationDTO_Props.snippetMessageInformationDTO];
+    //
+    //     return {
+    //         defaultMessageSnippets: _messageSnippetsDTOtoJSON(messageTemplateDTO[MessageTemplateDTO_Props.defaultMessageSnippets]),
+    //         ifThenElseBlockInfoListJSON: messageTemplateDTO[MessageTemplateDTO_Props.ifThenElseDTOList].map((ifThenElseBlockInfoDTO: IfThenElseBlockInfoDTO) => {
+    //             const ifThenElseBlockDTO: IfThenElseBlockDTO = ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.ifThenElseBlockDTO];
+    //
+    //             return {
+    //                 ifThenElseBlock: {
+    //                     path: _nullToVoid0(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.path]),
+    //                     conditionalIf: _normalizeString(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.dependencyVariableName]),
+    //                     messageSnippets_ELSE: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_ELSE]),
+    //                     messageSnippets_THEN: _messageSnippetsDTOtoJSON(ifThenElseBlockDTO[IfThenElseBlockDTO_Props.messageSnippets_THEN]),
+    //                 },
+    //                 key: ifThenElseBlockInfoDTO[IfThenElseBlockInfoDTO_Props.key],
+    //             };
+    //         }),
+    //         lastBlurInformation: {
+    //             pathToIfThenElseBlock: _nullToVoid0(lastBlurInformationDTO[LastBlurInformationDTO_Props.pathToIfThenElseBlock]),
+    //             cursorPosition: lastBlurInformationDTO[LastBlurInformationDTO_Props.cursorPosition],
+    //             snippetMessageInformation: snippetMessageInformationDTO
+    //                 ? {
+    //                     fieldType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.fieldType]),
+    //                     blockType: _nullToVoid0(snippetMessageInformationDTO[LastBlurSnippetMessageInformationDTO_Props.blockType]),
+    //                 }
+    //                 : void 0,
+    //             insertedVariablesVersion: lastBlurInformationDTO[LastBlurInformationDTO_Props.insertedVariablesVersion],
+    //         },
+    //     };
+    // }
 
     /**
      * Собрать родительский путь к новому дочернему блоку IF_THEN_ELSE
