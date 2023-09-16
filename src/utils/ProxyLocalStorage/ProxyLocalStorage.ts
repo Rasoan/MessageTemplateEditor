@@ -1,6 +1,6 @@
 'use strict';
 
-const _keyForMessageTemplate = '__keyForMessageTemplate__';
+const _keyForMessageTemplate = '____keyForMessageTemplate____';
 // по ТЗ должно называться именно arrVarNames
 const _keyForKeysVariablesList = 'arrVarNames';
 

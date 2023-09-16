@@ -50,17 +50,17 @@ function createMessageTemplate(options: IBaseState.Options): MessageTemplate {
         stateChangeNotify,
     } = options;
     const messageTemplateDTO: MessageTemplateDTO | null = JSON.parse(ProxyLocalStorage.getMessageTemplate());
-    const variablesList: IMessageTemplate.VariablesListDTO | null = JSON.parse(ProxyLocalStorage.getKeysVariablesList());
+    const variablesKeysList: IMessageTemplate.VariablesKeysList | null = JSON.parse(ProxyLocalStorage.getKeysVariablesList());
 
     return messageTemplateDTO
         ? MessageTemplate.fromDTO(
             messageTemplateDTO,
             stateChangeNotify,
-            variablesList || void 0,
+            variablesKeysList || void 0,
         )
         : new MessageTemplate({
             stateChangeNotify,
-            variablesList: variablesList || void 0,
+            variablesKeysList: variablesKeysList || void 0,
         })
     ;
 }

@@ -1,141 +1,113 @@
 'use strict';
+
 import {
-    IfThenElseBlockDTO,
-    IfThenElseBlockDTO_Props,
-    IfThenElseBlockInfoDTO,
-    IfThenElseBlockInfoDTO_Props,
-    IfThenElseBlockInfoJSON,
+    IfThenElseItemJSON,
     IMessageTemplate,
-    LastBlurInformationDTO,
-    LastBlurInformationDTO_Props,
-    LastBlurSnippetMessageInformationDTO,
-    LastBlurSnippetMessageInformationDTO_Props,
     MESSAGE_TEMPLATE_BLOCK_TYPE,
-    MESSAGE_TEMPLATE_FIELD_TYPE,
-    MessageFieldDetailsDTO,
-    MessageFieldDetailsDTO_Props,
-    MessageSnippetsDTO,
-    MessageSnippetsDTO_Props,
     MessageTemplateDTO,
-    MessageTemplateDTO_Props,
     MessageTemplateJSON,
     VariableInfoDTO,
     VariableInfoJSON,
 } from "./types/MessageTemplate";
 import {MAX_RECURSION_OF_NESTED_BLOCKS} from "../constants";
-import {generatorMessage, REGEXP_FOR_FIND_KEYS_OF_VARIABLES} from "../utils";
+import {
+    checkIsPathHasSubPath,
+    createPath,
+    generatorMessage,
+    getListParentsIfThenElseInfo,
+    getParentIfThenElseInfo,
+    movePositionListIfThenElse,
+    REGEXP_FOR_FIND_KEYS_OF_VARIABLES,
+    sortListIfThenElse,
+} from "../utils";
 
-/** Количество добавляемых текстовых полей (THEN + ELSE). */
+/** Количество добавляемых текстовых полей (THEN + ELSE + additionalField). */
 const QUANTITY_NEW_FIELDS = 3;
-/** Разделитель для путей */
-const SEPARATOR_FOR_PATH = '/';
 
 /** Класс, который работает с шаблоном сообщения */
 export default class MessageTemplate {
-    /** Первое и последнее (если разбили первое) поля для ввода текста */
-    private readonly _defaultMessageSnippets: IMessageTemplate.MessageSnippets;
+    /** CallBack который вызываем что бы уведомить стейт-менеджер о том, что что-то изменилось здесь */
     private readonly _stateChangeNotify: Function;
-    private _lastBlurInformation: IMessageTemplate.LastBlurInformation;
-    private _variables: Map<string, string>;
-
-    /** map-а со значениями полей THEN и ELSE */
-    private _mapOfIfThenElseBlocks = new Map<
-        IMessageTemplate.KeyIfThenElseBlock,
-        IMessageTemplate.IfThenElseBlock
+    /** Список переменных с ключами и значениями */
+    private _listVariables: Map<string, string> = new Map([
+        [ 'firstname', '' ],
+        [ 'lastname', '' ],
+        [ 'company', '' ],
+        [ 'position', '' ],
+    ]);
+    /** map-а с со списком ifThenElse */
+    private _listIfThenElse = new Map<
+        IMessageTemplate.PathToIfThenElse,
+        IMessageTemplate.IfThenElse
     >();
+    /** Самые верхние текстовые поля (не вложены ни куда) */
+    private _messageSnippetInfoInitial: IMessageTemplate.MessageSnippetsInfo<MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL> = {
+        field: {
+            message: '',
+            positionInResultMessage: 0,
+        },
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL,
+    };
+
+    /** Информация о местонахождении курсора */
+    private _lastBlurInfo: IMessageTemplate.LastBlurInfo = {
+        pathToIfThenElse: '' as IMessageTemplate.PathToIfThenElse,
+        cursorPosition: 0,
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL,
+        version: 0,
+    };
 
     constructor(options: IMessageTemplate.Options) {
         const {
             stateChangeNotify,
             messageTemplateJSON,
-            variablesList = [
-                'firstname',
-                'lastname',
-                'company',
-                'position',
-            ],
+            variablesKeysList,
         } = options;
 
         this._stateChangeNotify = stateChangeNotify;
 
         if (messageTemplateJSON !== void 0) {
             const {
-                ifThenElseBlockInfoListJSON,
-                lastBlurInformation,
-                defaultMessageSnippets,
+                listIfThenElse,
+                lastBlurInfo,
+                messageSnippetInfoInitial,
             } = messageTemplateJSON;
 
-            this._defaultMessageSnippets = defaultMessageSnippets;
-            this._lastBlurInformation = lastBlurInformation;
+            // todo: делать это в методе DTO
+            this._listIfThenElse = new Map(listIfThenElse
+                .map(({ pathToIfThenElse, ifThenElse}) => {
+                    return [ pathToIfThenElse, ifThenElse ];
+                }))
+            ;
+            this._lastBlurInfo = lastBlurInfo;
 
-            for (const ifThenElseBlockInfoJSON of ifThenElseBlockInfoListJSON) {
+            for (const ifThenElseItem of listIfThenElse) {
                 const {
-                    key: keyIfThenElseBlockJSON,
-                    ifThenElseBlock,
-                } = ifThenElseBlockInfoJSON;
+                    pathToIfThenElse,
+                    ifThenElse,
+                } = ifThenElseItem;
 
-                this._mapOfIfThenElseBlocks.set(keyIfThenElseBlockJSON, ifThenElseBlock);
+                this._listIfThenElse.set(pathToIfThenElse, ifThenElse);
             }
-        }
-        else {
-            this._defaultMessageSnippets = {
-                // первый блок тем и отличается от THEN/ELSE, что у него пути нет, ведь он первый:)
-                path: void 0,
-                field: {
-                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-                    message: '',
-                    isCanSplit: true,
-                    positionInResultMessage: 0,
-                },
-            };
-            this._lastBlurInformation = {
-                cursorPosition: 0,
-                snippetMessageInformation: {
-                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-                },
-                insertedVariablesVersion: 0,
-            }
+
+            this._messageSnippetInfoInitial = messageSnippetInfoInitial;
         }
 
-        this._variables = new Map(variablesList.map((key) => [ key, '' ]));
-    }
-
-    /** Очистить все поля */
-    public reset = () => {
-        this._mapOfIfThenElseBlocks.clear();
-
-        for (const variableKey of this._variables.keys()) {
-            this._variables.set(variableKey, '');
+        if (variablesKeysList) {
+            this._listVariables = new Map(variablesKeysList
+                .map(key => [ key, '' ]))
+            ;
         }
-
-        this._defaultMessageSnippets.field = {
-            ...this._defaultMessageSnippets.field,
-            message: '',
-            isCanSplit: true,
-        }
-        this._defaultMessageSnippets.fieldAdditional = void 0;
-
-        this._lastBlurInformation = {
-            cursorPosition: 0,
-            snippetMessageInformation: {
-                fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-            },
-            insertedVariablesVersion: 0,
-        }
-    }
-
-    get lastBlurInformation() {
-        return this._lastBlurInformation;
-    }
-
-    /** Количество IF_THEN_ELSE блоков */
-    get countIfThenElseBlocks() {
-        return this._mapOfIfThenElseBlocks.size;
     }
 
     /** Массив названий переменных */
     get variablesKeysList() {
-        return [ ...this._variables.keys() ];
+        return [ ...this._listVariables.keys() ];
+    }
+
+    /* Это поле можно изменять только внутри, а снаружи пусть только читают */
+    get lastBlurInfo() {
+        return { ...this._lastBlurInfo };
     }
 
     /**
@@ -145,10 +117,10 @@ export default class MessageTemplate {
         const {
             force,
         } = options || {};
-        const variableValue = this._variables.get(key);
+        const variableValue = this._listVariables.get(key);
 
         if (force !== void 0 && variableValue === void 0) {
-            throw new Error('Can\'t find variable!');
+            throw new Error("Can't find variable!");
         }
 
         return variableValue;
@@ -160,20 +132,20 @@ export default class MessageTemplate {
      * @param value - её значение
      */
     public changeVariable = (value: string, key: string) => {
-        const variable = this._variables.get(key);
+        const variable = this._listVariables.get(key);
 
         if (variable === void 0) {
-            throw new Error('Can\'t find variable!');
+            throw new Error("Can\'t find variable!");
         }
 
-        this._variables.set(key, value);
+        this._listVariables.set(key, value);
 
         this._stateChangeNotify();
     }
 
-    public clearVariablesValue = () => {
-        for (const variableKey of this._variables.keys()) {
-            this._variables.set(variableKey, '');
+    public clearListVariables = () => {
+        for (const variableKey of this._listVariables.keys()) {
+            this._listVariables.set(variableKey, '');
         }
 
         this._stateChangeNotify();
@@ -182,133 +154,74 @@ export default class MessageTemplate {
     public insertVariableInSubMessage(variable: string) {
         const variableWithModifier = `{${variable}}`;
         const {
-            _lastBlurInformation: lastBlurInformation,
+            _lastBlurInfo: lastBlurInfo,
         } = this;
         const {
-            pathToIfThenElseBlock,
+            pathToIfThenElse: lastBlur_pathToIfThenElse,
             cursorPosition: lastBlur_cursorPosition,
-            snippetMessageInformation: lastBlur_snippetMessageInformation,
-        } = lastBlurInformation;
-        const {
             blockType: lastBlur_blockType,
-            fieldType: lastBlur_fieldType,
-        } = lastBlur_snippetMessageInformation || {};
+        } = lastBlurInfo;
 
-        if (
-            // если тип блока есть, то это ifThenElse
-            lastBlur_blockType
-            // если типа поля нет, то это IF у ifThenElse
-            || !lastBlur_fieldType
-        ) {
-            const ifThenElse = this.getIfThenElse(
-                pathToIfThenElseBlock,
-                { force: true }
-            ) as IMessageTemplate.IfThenElseBlock;
-            const {
-                fieldType: lastBlur_fieldType,
-                blockType: lastBlur_blockType,
-            } = lastBlur_snippetMessageInformation || {};
-            const {
-                messageSnippets_THEN,
-                messageSnippets_ELSE,
-            } = ifThenElse;
+        const ifThenElse = this.getIfThenElseByPath(
+            lastBlur_pathToIfThenElse,
+        ) as IMessageTemplate.IfThenElse;
 
-            // если типа поля нет, то это IF у ifThenElse
-            if (!lastBlur_fieldType) {
-                ifThenElse.conditionalIf = insertSubstringInString(
-                    ifThenElse.conditionalIf,
-                    variableWithModifier,
-                    lastBlur_cursorPosition
-                );
-            }
-            else if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
-                const {
-                    field,
-                    fieldAdditional,
-                } = messageSnippets_THEN;
-
-                if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
-                    field.message = insertSubstringInString(
-                        field.message,
-                        variableWithModifier,
-                        lastBlur_cursorPosition,
-                    );
-                }
-                else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
-                    fieldAdditional.message = insertSubstringInString(
-                        fieldAdditional.message,
-                        variableWithModifier,
-                        lastBlur_cursorPosition,
-                    );
-                }
-                else {
-                    throw new Error('Unknown block!');
-                }
-            }
-            else if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
-                const {
-                    field,
-                    fieldAdditional,
-                } = messageSnippets_ELSE;
-
-                if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
-                    field.message = insertSubstringInString(
-                        field.message,
-                        variableWithModifier,
-                        lastBlur_cursorPosition
-                    );
-                }
-                else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
-                    fieldAdditional.message = insertSubstringInString(
-                        fieldAdditional.message,
-                        variableWithModifier,
-                        lastBlur_cursorPosition,
-                    );
-                }
-                else {
-                    throw new Error('Unknown block!');
-                }
-            }
-            else {
-                throw new Error('Unknown block!');
-            }
+        /* Во всех случая кроме MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL ifThenElse должен быть определён */
+        if (!ifThenElse && lastBlur_blockType !== MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL) {
+            throw new Error("ifThenElse is required!");
         }
-        // если тип блока не найден, то это первый блок не входящий в ifThenElse и сам не являющийся ifThenElse
+
+        // Если Null, то значит курсор в текстовом поле "If"
+        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.NULL) {
+            ifThenElse.conditionalIf = insertSubstringInString(
+                ifThenElse.conditionalIf,
+                variableWithModifier,
+                lastBlur_cursorPosition
+            );
+        }
         else {
-            const {
-                _defaultMessageSnippets: defaultMessageSnippets,
-            } = this;
+            const messageSnippetInfo = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL
+                ? this._messageSnippetInfoInitial
+                :  lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+                    ? ifThenElse.messageSnippetsInfoThen
+                    : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+                        ? ifThenElse.messageSnippetsInfoElse
+                        : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+                            ? ifThenElse.messageSnippetsInfoAdditional
+                            : void 0
+            ;
+
+            if (!messageSnippetInfo) {
+                throw new Error("messageSnippetInfo is not defined!");
+            }
+
             const {
                 field,
-                fieldAdditional,
-            } = defaultMessageSnippets;
+            } = messageSnippetInfo;
 
-            if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
-                field.message = insertSubstringInString(field.message, variableWithModifier, lastBlur_cursorPosition);
-            }
-            else if (lastBlur_fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL) {
-                fieldAdditional.message = insertSubstringInString(
-                    fieldAdditional.message,
-                    variableWithModifier,
-                    lastBlur_cursorPosition,
-                );
-            }
-            else {
-                throw new Error('Unknown block!');
-            }
+            field.message = insertSubstringInString(
+                field.message,
+                variableWithModifier,
+                lastBlur_cursorPosition,
+            );
         }
 
-        lastBlurInformation.cursorPosition += variableWithModifier.length;
-        lastBlurInformation.insertedVariablesVersion++;
+        lastBlurInfo.cursorPosition += variableWithModifier.length;
 
+        this._updateLastBlurVersion();
         this._stateChangeNotify();
     }
 
-    public setLastBlurInformation(blurSnippetMessageInformation: Omit<IMessageTemplate.LastBlurInformation, 'insertedVariablesVersion'>) {
-        this._lastBlurInformation = {
+    private _updateLastBlurVersion() {
+        this._lastBlurInfo.version++;
+        this._stateChangeNotify();
+    }
+
+    public setLastBlurInformation(blurSnippetMessageInformation: Omit<IMessageTemplate.LastBlurInfo, 'version'>) {
+        this._lastBlurInfo = {
             ...blurSnippetMessageInformation,
             // версию нельзя изменять снаружи, только изнутри и специально для выставления фокуса в поле
-            insertedVariablesVersion: this._lastBlurInformation.insertedVariablesVersion,
+            version: this._lastBlurInfo.version,
         };
 
         this._stateChangeNotify();
@@ -317,119 +230,160 @@ export default class MessageTemplate {
     /**
      * Разбить текущее поле на 2 и вставить между разбитым и новым полем новый блок IF_THEN_ELSE
      */
-    public splitFieldAndInsertIfThenElseBlock() {
+    public splitFieldAndInsertIfThenElse() {
         const {
-            _lastBlurInformation: lastBlurInformation,
+            _lastBlurInfo: lastBlurInfo,
         } = this;
 
-        if (lastBlurInformation === void 0) {
+        if (lastBlurInfo === void 0) {
             throw new Error('Can\'t split unknown block!');
         }
 
         const {
-            pathToIfThenElseBlock,
-            cursorPosition: positionSplitterInSubMessage,
-            snippetMessageInformation,
-        } = lastBlurInformation;
-        const {
-            fieldType,
-            blockType: currentBlockType,
-        } = snippetMessageInformation || {};
+            pathToIfThenElse: lastBlur_pathToIfThenElse,
+            cursorPosition: lastBlur_cursorPosition,
+            blockType: lastBlur_blockType,
+            version: lastBlur_insertedVariablesVersion,
+        } = lastBlurInfo;
 
-        if (!snippetMessageInformation) {
-            throw new Error('Can\'t split conditional block "IF"!');
-        }
-
-        if (fieldType !== MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL) {
-            throw new Error('Can split only initial block!');
+        // null здесь будет только если это if
+        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.NULL) {
+            throw new Error("Can't split field conditional field if!");
         }
 
         const {
-            _mapOfIfThenElseBlocks: mapOfIfThenElseBlocks,
+            _listIfThenElse: listIfThenElse,
         } = this;
-        const key = MessageTemplate._createKeyForIfThenElseBlock(pathToIfThenElseBlock);
 
-        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = mapOfIfThenElseBlocks.get(key);
+        const ifThenElse_splitTarget: void | IMessageTemplate.IfThenElse = this.getIfThenElseByPath(lastBlur_pathToIfThenElse);
 
-        const messageSnippets_splitTarget: IMessageTemplate.MessageSnippets =
-            currentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN && _checkIsIfThenElseBlock(ifThenElseBlock)
-                ? ifThenElseBlock.messageSnippets_THEN
-                : currentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
-                    ? ifThenElseBlock.messageSnippets_ELSE
-                    : this._defaultMessageSnippets
+        const messageSnippets_splitTarget = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+            ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoThen
+            : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+                ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoElse
+                : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+                    ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoAdditional
+                    : this._messageSnippetInfoInitial
         ;
 
         const {
             field: splitTarget_field,
         } = messageSnippets_splitTarget;
+
         const {
             message: splitTarget_message,
-            isCanSplit: splitTarget_isCanSplit,
             positionInResultMessage: splitTarget_positionInResultMessage,
         } = splitTarget_field;
 
-        if (!splitTarget_isCanSplit) {
-            throw new Error('The current field is already broken!');
+        let splitTarget_parentBlockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
+        let splitTarget_pathToParentIfThenElse_or_pathToIfThenElse: IMessageTemplate.PathToIfThenElse;
+
+        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+            const parentIfThenElseInfo = getParentIfThenElseInfo(lastBlur_pathToIfThenElse);
+
+            splitTarget_parentBlockType = parentIfThenElseInfo.blockType;
+            splitTarget_pathToParentIfThenElse_or_pathToIfThenElse = parentIfThenElseInfo.pathToIfThenElse;
+        }
+        else {
+            splitTarget_parentBlockType = lastBlur_blockType;
+            splitTarget_pathToParentIfThenElse_or_pathToIfThenElse = lastBlur_pathToIfThenElse;
         }
 
-        for (const currentIfThenElse of mapOfIfThenElseBlocks.values()) {
-            const {
-                messageSnippets_THEN,
-                messageSnippets_ELSE,
-            } = currentIfThenElse;
-            const {
-                field: fieldBlock_then,
-                fieldAdditional: fieldAdditionalBlock_then,
-            } = messageSnippets_THEN;
-            const {
-                field: fieldBlock_else,
-                fieldAdditional: fieldAdditionalBlock_else,
-            } = messageSnippets_ELSE;
+        /** Одно уровневые ifThenElse-ы находящиеся на одном уровне с разбитым текстовым полем */
+        const listIfThenElseInNestingLevel = this.getListIfThenElseInNestingLevel(
+            splitTarget_parentBlockType,
+            splitTarget_pathToParentIfThenElse_or_pathToIfThenElse,
+        );
 
-            // поскольку поля добавились после разбитого, позицию предыдущих НЕ трогаем
-            {
-                if (fieldBlock_then.positionInResultMessage > splitTarget_positionInResultMessage) {
-                    fieldBlock_then.positionInResultMessage += QUANTITY_NEW_FIELDS;
-                }
+         /** Последний ifThenElse на текущем уровне вложенности */
+         const lastIfThenElseInNestingLevel = listIfThenElseInNestingLevel[listIfThenElseInNestingLevel.length - 1/** последний */];
+         /**
+          * Номер позиции последнего текстового поля, которое находилось перед вставляемым ifThenElse.
+          * Если выделено было дополнительное текстовое поле от ifThenElse, то последняя позиция берётся от него.
+         */
+         const lastPositionInResultMessageInNestingLevel = _createPositionInResultMessage(
+             lastBlur_blockType,
+             messageSnippets_splitTarget,
+             {
+                 positionLastFieldInResultMessage_nestingLevel: lastIfThenElseInNestingLevel?.messageSnippetsInfoAdditional?.field?.positionInResultMessage,
+             }
+         );
 
-                if (fieldAdditionalBlock_then?.positionInResultMessage > splitTarget_positionInResultMessage) {
-                    fieldAdditionalBlock_then.positionInResultMessage += QUANTITY_NEW_FIELDS;
-                }
+        // Перенумеровать позиции текстовых полей для итогового собранного сообщения
+         {
+             /** Все, вообще все, текстовые поля */
+            const allFields = this.getAllFields();
 
-                if (fieldBlock_else.positionInResultMessage > splitTarget_positionInResultMessage) {
-                    fieldBlock_else.positionInResultMessage += QUANTITY_NEW_FIELDS;
-                }
+            for (const currentField of allFields) {
+                const {
+                    positionInResultMessage: currentField_positionInResultMessage,
+                } = currentField;
 
-                if (fieldAdditionalBlock_else?.positionInResultMessage > splitTarget_positionInResultMessage) {
-                    fieldAdditionalBlock_else.positionInResultMessage += QUANTITY_NEW_FIELDS;
+                /*
+                    Поскольку поля добавились после разбитого текстового поля
+                     (или после одно уровневого ifThenElse),
+                     позицию предыдущих не трогаем.
+                */
+                if (currentField_positionInResultMessage > lastPositionInResultMessageInNestingLevel) {
+                    currentField.positionInResultMessage += QUANTITY_NEW_FIELDS;
                 }
             }
         }
 
-        this._createIfThenElseBlock(
-            splitTarget_positionInResultMessage,
-            MessageTemplate.createPath(currentBlockType, pathToIfThenElseBlock),
+        /* У нового ifThenElse будет следующая позиция, на 1 позже, с каждым добавленным ifThenElse length увеличивается на 1 */
+        const positionIfThenElse_new = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+            // Но если было выделено дополнительно текстовое поле от ifThenElse, то позицию для нового ifThenElse берём от разбиваемого ifThenElse
+            ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).position + 1/* На одну позицию позже */
+            : listIfThenElseInNestingLevel.length
+        ;
+
+        const blockTypeForIfThenElse_new = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+            ? getParentIfThenElseInfo(lastBlur_pathToIfThenElse).blockType
+            : lastBlur_blockType
+        ;
+
+        const pathToIfThenElse_new = MessageTemplate.createPath(
+            positionIfThenElse_new,
+            blockTypeForIfThenElse_new,
+            lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+            // Если разбиваем дополнительное текстовое поле от ifThenElse, то поднимаемся на уровень выше, это одно уровневый ifThenElse, а не вложенный будет
+            ? splitTarget_pathToParentIfThenElse_or_pathToIfThenElse
+            : lastBlur_pathToIfThenElse,
         );
 
-        messageSnippets_splitTarget.fieldAdditional = {
-            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL,
+        const ifThenElse_new = _createIfThenElse(
+            {
+                positionIfThenElse: positionIfThenElse_new,
+                // на одну позицию позже
+                positionInResultMessage: lastPositionInResultMessageInNestingLevel + 1,
+            },
+            blockTypeForIfThenElse_new,
             // закинули вторую часть разбитого поля в дополнительное поле
-            message: splitTarget_message.slice(positionSplitterInSubMessage),
-            /*
-                Дополнительное поле текущего блока после разбития текущего блока (на два) будет на 3 позже разбитого поля,
-                поскольку между ними появились 2 новых поля THEN/ELSE нового дочернего блока.
-            */
-            positionInResultMessage: splitTarget_positionInResultMessage + QUANTITY_NEW_FIELDS,
-            // это поле всегда false, опции разбить дополнительное поля нет (никогда).
-            isCanSplit: false,
-        };
+            splitTarget_message.slice(lastBlur_cursorPosition),
+            pathToIfThenElse_new,
+        );
 
-        /* При любом раскладе, это текстовое поле ВСЕГДА последнее. */
-        this._defaultMessageSnippets.fieldAdditional.positionInResultMessage = Number.MAX_VALUE;
+        /* Если добавили одно уровневый ifThenElse, то подвинем соседей */
+        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+            this._listIfThenElse = new Map(
+                sortListIfThenElse([
+                    ...movePositionListIfThenElse(Array.from(this._listIfThenElse.entries()), { path: pathToIfThenElse_new, isAdded: true }),
+                    // добавили новый созданный ifThenElse
+                    ...new Map([[pathToIfThenElse_new, ifThenElse_new]]),
+                ])
+            );
+        }
+        else {
+            this._listIfThenElse.set(pathToIfThenElse_new, ifThenElse_new);
+        }
 
         // удалили вторую часть сообщения из разбитого поля
-        splitTarget_field.message = splitTarget_message.slice(0, positionSplitterInSubMessage);
-        splitTarget_field.isCanSplit = false;
+        splitTarget_field.message = splitTarget_message.slice(
+            0/* С начала строки */,
+            lastBlur_cursorPosition,
+        );
+
+        this._updateLastBlurVersion();
 
         this._stateChangeNotify();
     }
@@ -437,275 +391,136 @@ export default class MessageTemplate {
     /**
      * Получить ifThenElse блок
      *
-     * @param path - путь к ifThenElse блоку
+     * @param pathToIfThenElse - путь к ifThenElse блоку
      * @param options
-     * @param options.force - если указали force, то вернёт или ifThenElse или ошибку выкинет, если не передать force, то может вернуть void 0
+     * @param options.force
      */
-    public getIfThenElse(path?: IMessageTemplate.PathToBlock | void, options?: { force: boolean }): IMessageTemplate.IfThenElseBlock | void {
-        const {
-            force,
-        } = options || {};
-        const key = MessageTemplate._createKeyForIfThenElseBlock(path);
-        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
-
-        if (force) {
-            _assertIsIfThenElseBlock(ifThenElseBlock);
-        }
-
-        return ifThenElseBlock;
+    public getIfThenElseByPath(
+        pathToIfThenElse: IMessageTemplate.PathToIfThenElse,
+        options?: { force?: boolean },
+    ): IMessageTemplate.IfThenElse | void {
+        return _getIfThenElseByPath(
+            pathToIfThenElse,
+            this._listIfThenElse,
+            options,
+        );
     }
 
-    /**
-     * Получить THEN или ELSE или первый блок
-     *
-     * @param pathToParentBlock - путь к родительскому блоку
-     * @param blockType - тип блока (void 0 если первый блок НЕ вложенный в ifThenElse)
-     */
-    public getBlockInformationForce(
-        pathToParentBlock?: IMessageTemplate.PathToBlock | void,
-        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
-    ): IMessageTemplate.MessageSnippets {
-        if (blockType === void 0) {
-            return this._defaultMessageSnippets;
-        }
-
-        const ifThenElseBlock = this
-            .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
-        ;
-
-        switch (blockType) {
-            case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
-                return ifThenElseBlock.messageSnippets_THEN;
-            }
-            case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
-                return ifThenElseBlock.messageSnippets_ELSE;
-            }
-        }
-    }
+    // /**
+    //  * Получить THEN или ELSE или первый блок
+    //  *
+    //  * @param pathToParentBlock - путь к родительскому блоку
+    //  * @param blockType - тип блока (void 0 если первый блок НЕ вложенный в ifThenElse)
+    //  */
+    // public getBlockInformationForce(
+    //     pathToParentBlock?: IMessageTemplate.PathToIfThenElse | void,
+    //     blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
+    // ): IMessageTemplate.MessageSnippets {
+    //     if (blockType === void 0) {
+    //         return this._defaultMessageSnippets;
+    //     }
+    //
+    //     const ifThenElseBlock = this
+    //         .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
+    //     ;
+    //
+    //     switch (blockType) {
+    //         case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
+    //             return ifThenElseBlock.messageSnippets_THEN;
+    //         }
+    //         case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
+    //             return ifThenElseBlock.messageSnippets_ELSE;
+    //         }
+    //     }
+    // }
 
     /**
      * Получить текст поля в которое вводим название переменной
      *
-     * @param pathToParentBlock - путь к родительскому блоку (включая родителя) (void 0 если первый ifThenElse)
+     * @param pathToIfThenElse - путь к родительскому блоку (включая родителя) (void 0 если первый ifThenElse)
      */
-    public getDependencyVariableNameForce(pathToParentBlock?: IMessageTemplate.PathToBlock | void): string {
-        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock = this
-            .getIfThenElse(pathToParentBlock, { force: true }) as IMessageTemplate.IfThenElseBlock
+    public getDependencyVariableNameForce(pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse): string {
+        const ifThenElseBlock: IMessageTemplate.IfThenElse = this
+            .getIfThenElseByPath(pathToIfThenElse, { force: true }) as IMessageTemplate.IfThenElse
         ;
 
         return ifThenElseBlock.conditionalIf;
     }
 
-    public getMessageSnippets() {
-        const messageSnippets = [
-            this._defaultMessageSnippets.field,
-            this._defaultMessageSnippets.fieldAdditional,
-        ];
+    public getAllFields() {
+        return Array
+            .from(this._listIfThenElse.values())
+            .reduce((listAllFields, currentIfThenElse) => {
+                const {
+                    messageSnippetsInfoThen,
+                    messageSnippetsInfoElse,
+                    messageSnippetsInfoAdditional,
+                } = currentIfThenElse;
 
-        for (const ifThenElseBlock of this._mapOfIfThenElseBlocks.values()) {
-            messageSnippets.push(
-                ifThenElseBlock.messageSnippets_THEN.field,
-                ifThenElseBlock.messageSnippets_ELSE.field,
-            );
+                listAllFields.push(
+                    messageSnippetsInfoThen.field,
+                    messageSnippetsInfoElse.field,
+                    messageSnippetsInfoAdditional.field,
+                );
 
-            if (ifThenElseBlock.messageSnippets_ELSE.fieldAdditional !== void 0) {
-                messageSnippets.push(ifThenElseBlock.messageSnippets_ELSE.fieldAdditional);
-            }
-
-            if (ifThenElseBlock.messageSnippets_THEN.fieldAdditional !== void 0) {
-                messageSnippets.push(ifThenElseBlock.messageSnippets_THEN.fieldAdditional);
-            }
-        }
-
-        return messageSnippets.sort(
-            (prevMessageSnippet, nextMessageSnippet) => {
-                return prevMessageSnippet.positionInResultMessage - nextMessageSnippet.positionInResultMessage;
-        });
+                return listAllFields;
+            }, [ this._messageSnippetInfoInitial.field ] as IMessageTemplate.FieldInfo[])
+            .sort((prevMessageSnippet, nextMessageSnippet) => {
+                    return prevMessageSnippet.positionInResultMessage - nextMessageSnippet.positionInResultMessage;
+                })
+            ;
     }
 
     /**
-     * Сохранить данные (одной из подстрок блока IF_THEN_ELSE) подстроки результирующего сообщения
+     * Сохранить текстового поля
      *
-     * @param message - сообщение из field
-     * @param details
-     * @param details.pathToParentBlock - путь к родительскому блоку (включая его самого) IF_THEN_ELSE {@link IMessageTemplate}
-     * @param details.currentBlockType - тип блока THEN/ELSE (void 0 если это первый блок не входящий в IF_THEN_ELSE)
-     * @param details.fieldType - тип поля
+     * @param text - сообщение из field
+     * @param blockType - тип блока
+     * @param pathToIfThenElse - путь к ifThenElse
      */
-    public setSnippetMessage(
-        message: string,
-        details: {
-            fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
-            currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
-            /** Путь к родительскому ifThenElse или void 0, если первый блок */
-            path?: IMessageTemplate.PathToBlock | void,
-        },
+    public setMessageSnippetOrVariableValue(
+        text: string,
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        /** Путь к ifThenElse */
+        pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse,
     ) {
-        const {
-            currentBlockType,
-            fieldType,
-            path = '' as IMessageTemplate.PathToBlock,
-        } = details;
+        if (blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL) {
+            this._messageSnippetInfoInitial.field.message = text;
+        }
+        else {
+            const ifThenElse = this.getIfThenElseByPath(
+                pathToIfThenElse,
+                { force: true }
+            ) as IMessageTemplate.IfThenElse;
 
-        if (currentBlockType === void 0) {
-            const {
-                _defaultMessageSnippets: defaultMessageSnippets,
-            } = this;
-
-            switch (fieldType) {
-                case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                    defaultMessageSnippets.field.message = message;
+            switch (blockType) {
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
+                    ifThenElse.messageSnippetsInfoThen.field.message = text;
 
                     break;
                 }
-                case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                    defaultMessageSnippets.fieldAdditional.message = message;
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
+                    ifThenElse.messageSnippetsInfoElse.field.message = text;
+
+                    break;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL: {
+                    ifThenElse.messageSnippetsInfoAdditional.field.message = text;
+
+                    break;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.NULL: {
+                    ifThenElse.conditionalIf = text;
 
                     break;
                 }
                 default: {
-                    // ошибка которая никогда не произойдёт
-                    throw new Error('Unknown type!');
+                    throw new Error('Unknown block type!');
                 }
-            }
-
-            this._stateChangeNotify();
-
-            return;
-        }
-
-        const key = MessageTemplate._createKeyForIfThenElseBlock(path);
-
-        const ifThenElseBlock: IMessageTemplate.IfThenElseBlock | void = this._mapOfIfThenElseBlocks.get(key);
-
-        _assertIsIfThenElseBlock(ifThenElseBlock);
-
-        switch (currentBlockType) {
-            case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
-                const {
-                    messageSnippets_THEN,
-                } = ifThenElseBlock;
-
-                switch (fieldType) {
-                    case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        messageSnippets_THEN.field.message = message;
-
-                        break;
-                    }
-                    case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        messageSnippets_THEN.fieldAdditional.message = message;
-
-                        break;
-                    }
-                    default: {
-                        // ошибка которая никогда не произойдёт
-                        throw new Error('Unknown type!');
-                    }
-                }
-
-                break;
-            }
-            case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
-                const {
-                    messageSnippets_ELSE,
-                } = ifThenElseBlock;
-
-                switch (fieldType) {
-                    case MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL: {
-                        messageSnippets_ELSE.field.message = message;
-
-                        break;
-                    }
-                    case MESSAGE_TEMPLATE_FIELD_TYPE.ADDITIONAL: {
-                        messageSnippets_ELSE.fieldAdditional.message = message;
-
-                        break;
-                    }
-                    default: {
-                        // ошибка которая никогда не произойдёт
-                        throw new Error('Unknown type!');
-                    }
-                }
-
-                break;
-            }
-            default: {
-                // ошибка которая никогда не произойдёт
-                throw new Error('Unknown type!');
             }
         }
 
         this._stateChangeNotify();
-    }
-
-    /**
-     * Сохранить данные переменной, которая будет отвечать за блок THEN/ELSE
-     *
-     * @param variableName - название переменной
-     * @param path - путь к ifThenELse
-     */
-    public setDependencyVariable(
-        variableName: string,
-        path?: IMessageTemplate.PathToBlock | void,
-    ) {
-        const key = MessageTemplate._createKeyForIfThenElseBlock(path);
-
-        const ifThenElseBlock: void | IMessageTemplate.IfThenElseBlock = this._mapOfIfThenElseBlocks.get(key);
-
-        _assertIsIfThenElseBlock(ifThenElseBlock);
-
-        ifThenElseBlock.conditionalIf = variableName;
-
-        this._stateChangeNotify();
-    }
-
-    /**
-     * Создать IF_THEN_ELSE блок
-     *
-     * @param positionPreviousFieldInResultMessage - позиция в результирующем сообщении первой части разбитого на 2 field
-     * @param path - путь к создаваемому ifThenElse блоку
-     * @private
-     */
-    private _createIfThenElseBlock(
-        positionPreviousFieldInResultMessage: number,
-        path?: IMessageTemplate.PathToBlock | void,
-    ) {
-        const keyForNewIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(path);
-
-        const newIfThenElseBlock: IMessageTemplate.IfThenElseBlock = {
-            path,
-            conditionalIf: '',
-            messageSnippets_THEN: {
-                blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.THEN,
-                path: MessageTemplate.createPath(MESSAGE_TEMPLATE_BLOCK_TYPE.THEN, path),
-                field: {
-                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-                    message: '',
-                    // новый field блока THEN будет на 1 после предыдущего родительского
-                    positionInResultMessage: positionPreviousFieldInResultMessage + 1,
-                    isCanSplit: true,
-                },
-            },
-            messageSnippets_ELSE: {
-                blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE,
-                path: MessageTemplate.createPath(MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE, path),
-                field: {
-                    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-                    message: '',
-                    // новый field блока ELSE будет на 2 после предыдущего родительского (перед ним блок THEN)
-                    positionInResultMessage: positionPreviousFieldInResultMessage + 2,
-                    isCanSplit: true,
-                },
-            },
-        }
-
-        this._mapOfIfThenElseBlocks.set(keyForNewIfThenElseBlock, newIfThenElseBlock);
-
-        this._lastBlurInformation = {
-            pathToIfThenElseBlock: newIfThenElseBlock.path,
-            cursorPosition: 0,
-            insertedVariablesVersion: 0,
-        };
     }
 
     /**
@@ -713,33 +528,33 @@ export default class MessageTemplate {
      *
      * @param path - путь к ifThenElse для которого получаем информацию
      */
-    public getAllParentsIfThenElseInfoByPath(path?: IMessageTemplate.PathToBlock | void): IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock[] {
-        // Для первого ifThenElse будет именно так
-        if (!path) {
-            return [];
-        }
-
-        const allParentsBlocks = path.split('/');
-        const parentIfThenElseInfoListForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock[] = [];
-
-        for (let index = allParentsBlocks.length - 1; index >= 0; index--) {
-            const lastParentBlockType = allParentsBlocks[index];
-
-            const path = allParentsBlocks.slice(0, allParentsBlocks.length - 1).join('/');
-            const parentIfThenElseInfoForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock = {
-                // не сохраняем пустой путь, путь или void 0, или хотя бы один блок должен быть в пути
-                path: path !== ''
-                    ? path as IMessageTemplate.PathToBlock
-                    : void 0,
-                blockType: Number(lastParentBlockType) as MESSAGE_TEMPLATE_BLOCK_TYPE,
-            };
-
-            allParentsBlocks.length--;
-            parentIfThenElseInfoListForChildIfThenElseBlock.push(parentIfThenElseInfoForChildIfThenElseBlock);
-        }
-
-        // восстановим очередность путей
-        return parentIfThenElseInfoListForChildIfThenElseBlock.reverse();
+    public getAllParentsIfThenElseInfoByPath(path?: IMessageTemplate.PathToIfThenElse | void) {
+        // // Для первого ifThenElse будет именно так
+        // if (!path) {
+        //     return [];
+        // }
+        //
+        // const allParentsBlocks = path.split('/');
+        // const parentIfThenElseInfoListForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock[] = [];
+        //
+        // for (let index = allParentsBlocks.length - 1; index >= 0; index--) {
+        //     const lastParentBlockType = allParentsBlocks[index];
+        //
+        //     const path = allParentsBlocks.slice(0, allParentsBlocks.length - 1).join('/');
+        //     const parentIfThenElseInfoForChildIfThenElseBlock: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock = {
+        //         // не сохраняем пустой путь, путь или void 0, или хотя бы один блок должен быть в пути
+        //         path: path !== ''
+        //             ? path as IMessageTemplate.PathToIfThenElse
+        //             : void 0,
+        //         blockType: Number(lastParentBlockType) as MESSAGE_TEMPLATE_BLOCK_TYPE,
+        //     };
+        //
+        //     allParentsBlocks.length--;
+        //     parentIfThenElseInfoListForChildIfThenElseBlock.push(parentIfThenElseInfoForChildIfThenElseBlock);
+        // }
+        //
+        // // восстановим очередность путей
+        // return parentIfThenElseInfoListForChildIfThenElseBlock.reverse();
     }
 
     /**
@@ -747,178 +562,195 @@ export default class MessageTemplate {
      *
      * @param path - путь к ifThenElse для которого получаем информацию
      */
-    public getParentIfThenElseInfoByPath(path?: IMessageTemplate.PathToBlock | void): IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock | void {
-        const allParentsIfThenElseInfoByPath = this.getAllParentsIfThenElseInfoByPath(path)
-
-        // последний ifThenElse в массиве будет ближайшим родителем
-        return allParentsIfThenElseInfoByPath[allParentsIfThenElseInfoByPath.length - 1];
+    public getParentIfThenElseInfoByPath(path?: IMessageTemplate.PathToIfThenElse | void) {
+        // const allParentsIfThenElseInfoByPath = this.getAllParentsIfThenElseInfoByPath(path)
+        //
+        // // последний ifThenElse в массиве будет ближайшим родителем
+        // return allParentsIfThenElseInfoByPath[allParentsIfThenElseInfoByPath.length - 1];
     }
 
     /**
+     * Удалить ifThenElse
      *
-     * @param path - путь к ifThenElse который удаляем
+     * @param pathToIfThenElse - путь к ifThenElse который удаляем
      */
-    public deleteIfThenElse(path?: IMessageTemplate.PathToBlock | void) {
-        const keyOfIfThenElseBlock = MessageTemplate._createKeyForIfThenElseBlock(path);
+    public deleteIfThenElse(pathToIfThenElse: IMessageTemplate.PathToIfThenElse) {
+        const {
+            path: pathToIfThenElse_deleted,
+            position: positionIfThenElse_deleted,
+            messageSnippetsInfoAdditional: messageSnippetsInfoAdditional_deleted,
+        } = this.getIfThenElseByPath(
+            pathToIfThenElse,
+            { force: true },
+        ) as IMessageTemplate.IfThenElse;
 
-        this._mapOfIfThenElseBlocks.delete(keyOfIfThenElseBlock);
+        this._listIfThenElse.delete(pathToIfThenElse);
 
-        const parentIfThenElseInfo: IMessageTemplate.ParentIfThenElseInfoForChildIfThenElseBlock | void = this.getParentIfThenElseInfoByPath(path);
-        if (parentIfThenElseInfo) {
-            const {
-                path: pathToParentIfThenElse,
-                blockType,
-            } = parentIfThenElseInfo;
-            const parentIfThenElse = this.getIfThenElse(pathToParentIfThenElse, { force: true }) as IMessageTemplate.IfThenElseBlock;
-            const block = blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
-                ? parentIfThenElse.messageSnippets_THEN
-                : parentIfThenElse.messageSnippets_ELSE
-            ;
-            const {
-                field,
-                fieldAdditional,
-            } = block;
-            const {
-                fieldType,
-                message,
-            } = field;
-            const {
-                message: message_fieldAdditional,
-            } = fieldAdditional;
+        const {
+            pathToIfThenElse: pathToParentIfThenElse_deleted,
+            blockType: parentBlockTypeIfThenElse_deleted,
+        } = getParentIfThenElseInfo(pathToIfThenElse_deleted);
 
-            block.field = {
-                ...block.field,
-                isCanSplit: true,
-                message: message + message_fieldAdditional,
+        // 2, 3, N.. любой ifThenElse с позицией больше нуля возвращает своё дополнительное поле в предыдущий ifThenElse
+        if (positionIfThenElse_deleted > 0) {
+            const listIfThenElseInDeletedLevel = this.getListIfThenElseInNestingLevel(
+                parentBlockTypeIfThenElse_deleted,
+                pathToParentIfThenElse_deleted,
+            );
+
+            // Если позиция удалённого ifThenElse больше нуля, то соседний ifThenElse предыдущий должен быть (хотя бы один)
+            if (listIfThenElseInDeletedLevel.length === 0) {
+                throw new Error("Empty list of ifThenElse!");
             }
 
-            this._lastBlurInformation = {
-                cursorPosition: message.length,
-                pathToIfThenElseBlock: pathToParentIfThenElse,
-                snippetMessageInformation: {
-                    blockType,
-                    fieldType,
-                },
-                insertedVariablesVersion: 0,
-            };
+            let isConcatenatedPrevAndNextFields = false;
 
-            block.fieldAdditional = void 0;
-        }
-        else {
-            const block = this._defaultMessageSnippets;
-            const {
-                field,
-                fieldAdditional,
-            } = block;
-            const {
-                fieldType,
-                message,
-            } = field;
-            const {
-                message: message_fieldAdditional,
-            } = fieldAdditional;
+            for (const currentIfThenElse of listIfThenElseInDeletedLevel) {
+                // если это предыдущий ifThenElse
+                if (currentIfThenElse.position === positionIfThenElse_deleted - 1) {
+                    currentIfThenElse.messageSnippetsInfoAdditional.field.message = ''.concat(
+                        currentIfThenElse.messageSnippetsInfoAdditional.field.message,
+                        messageSnippetsInfoAdditional_deleted.field.message,
+                    );
 
-            block.field = {
-                ...block.field,
-                isCanSplit: true,
-                message: message + message_fieldAdditional,
-            }
-
-            this._lastBlurInformation = {
-                cursorPosition: message.length,
-                snippetMessageInformation: {
-                    fieldType,
-                },
-                insertedVariablesVersion: 0,
-            };
-
-            block.fieldAdditional = void 0;
-        }
-
-        for (const [ currentIfThenElseKey, currentIfThenElseValue ] of this._mapOfIfThenElseBlocks.entries()) {
-            const {
-                _mapOfIfThenElseBlocks: mapOfIfThenElseBlocks,
-            } = this;
-            const {
-                path: currentIfThenElse_path,
-            } = currentIfThenElseValue;
-
-            if (path) {
-                // Если у текущего ifThenElse есть путь, значит он вложен, значит возможно он входит в удалённый ifThenElse
-                if (currentIfThenElse_path) {
-                    /*
-                        Если путь удалённого (родительского по отношения к текущему) ifThenElse входит в путь текущего ifThenElse,
-                         значит он ребёнок удалённого ifThenElse,
-                         значит его так-же по цепочке удаляем.
-                     */
-                    if (currentIfThenElse_path.includes(path)) {
-                        const currentIfThenElseKey = MessageTemplate._createKeyForIfThenElseBlock(currentIfThenElse_path);
-
-                        mapOfIfThenElseBlocks.delete(currentIfThenElseKey);
-                    }
+                    isConcatenatedPrevAndNextFields = true;
                 }
             }
-            /*
-                Если у ifThenELse нет пути, значит это первый ifThenElse был удалён,
-                значит проверять и вовсе ничего не надо, сносим все ifThenElse.
-             */
-            else {
-                mapOfIfThenElseBlocks.clear();
+
+            if (!isConcatenatedPrevAndNextFields) {
+                throw new Error("Fields no concatenated!");
             }
+        }
+        // а самый первый ifThenElse на своём уровне возвращает свой текст в родительский ifThenElse
+        else if (positionIfThenElse_deleted === 0) {
+            const parentIfThenElse_deleted = this.getIfThenElseByPath(
+                pathToParentIfThenElse_deleted
+            ) || {} as IMessageTemplate.IfThenElse;
+            const messageSnippetInfoTarget = parentBlockTypeIfThenElse_deleted === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+                ? parentIfThenElse_deleted?.messageSnippetsInfoThen
+                : parentBlockTypeIfThenElse_deleted === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+                    ? parentIfThenElse_deleted?.messageSnippetsInfoElse
+                    // Если удалённый ifThenElse был на самом верхнем уровне вложенности, то возвращаем его текст в исходный field
+                    : parentBlockTypeIfThenElse_deleted === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL
+                        ? this._messageSnippetInfoInitial
+                        : void 0
+            ;
+
+            if (!messageSnippetInfoTarget) {
+                throw new Error("Can't find target messageSnippetInfo!");
+            }
+
+            messageSnippetInfoTarget.field.message = ''.concat(
+                messageSnippetInfoTarget.field.message,
+                messageSnippetsInfoAdditional_deleted.field.message,
+            );
+        }
+
+        // удалить все вложенные в удалённый ifThenElse ifThenElse-ы
+        for (const pathToIfThenElse_current of this._listIfThenElse.keys()) {
+            const isPathHasSubPath = checkIsPathHasSubPath(
+                pathToIfThenElse_current,
+                {
+                    pathToIfThenElse: pathToIfThenElse_deleted,
+                    // здесь мы не передаём тип блока, потому что удаляем все вложенные ifThenElse вне зависимости от типа блока
+                }
+            );
+
+            if (isPathHasSubPath) {
+                this._listIfThenElse.delete(pathToIfThenElse_current);
+            }
+        }
+
+        // вернуть смещение ifThenElse (подравнять позиции, и позиции в путях)
+        this._listIfThenElse = new Map(
+            sortListIfThenElse([
+                ...movePositionListIfThenElse(
+                    Array.from(this._listIfThenElse.entries()),
+                    { path: pathToIfThenElse_deleted, isAdded: false }
+                ),
+            ])
+        );
+
+        // Разбираемся с курсором
+        {
+            this._lastBlurInfo = _getLastBlurInfoAfterDeleteIfThenElse(
+                this._listIfThenElse,
+                this._lastBlurInfo,
+                pathToIfThenElse_deleted,
+                {
+                    positionIfThenElse_deleted: positionIfThenElse_deleted,
+                    messageSnippetInfoInitial_contentLength: this._messageSnippetInfoInitial.field.message.length,
+                }
+            );
         }
 
         this._stateChangeNotify();
     }
 
     /**
-     * Проверить текстовое поле на то, что последний раз курсор был именно в нём
-     *
-     * @param fieldType - тип текстового поля, опциональный, void 0 если это IF
-     * @param path - путь к блоку ifThenElse текстового поля
-     * @param blockType - тип блока в котором находится текстовое поле
-     */
+    * Проверить текстовое поле на то, что последний раз курсор был именно в нём
+    *
+    * @param pathToIfThenElse - путь к блоку ifThenElse текстового поля
+    * @param blockType - тип блока в котором находится текстовое поле
+    */
     public checkIsLastBlurField(
-        path?: IMessageTemplate.PathToBlock | void,
-        fieldType?: MESSAGE_TEMPLATE_FIELD_TYPE | void,
-        blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse,
     ): boolean {
         const {
-            pathToIfThenElseBlock: lastBlurSnippet_pathToIfThenElseBlock,
-            snippetMessageInformation,
-        } = this._lastBlurInformation;
-        const {
-            fieldType: lastBlurSnippet_fieldType,
-            blockType: lastBlurSnippet_blockType,
-        } = snippetMessageInformation || {};
+            pathToIfThenElse: lastBlur_pathToIfThenElse,
+            blockType: lastBlur_blockType,
+        } = this._lastBlurInfo;
 
-        if (
-            // если у последнего выделенного поля нет типа этого поля, то это точно IF, а значит проверяем только путь
-            fieldType === void 0
-            /*
-                Но и у If так же нет типа поля, значит проверим, что выделен был именно IF.
-
-                Итого, проверяем на if ТОЛЬКО в том случае если САМО поле проверяющее является IF
-                И если выделенным последнее поле было IF
-
-                В целом, да, нужно было добавить тип для поля IF, что бы на это можно было проверять, но переделывать уже не буду,
-                но если бы проект был боевым, то да, надо бы переделать это место, проверка на void 0 стала какой-то слишком умной и
-                замудрённой.
-             */
-            && lastBlurSnippet_fieldType === void 0
-        ) {
-            return path === lastBlurSnippet_pathToIfThenElseBlock;
-        }
-
-        return path === lastBlurSnippet_pathToIfThenElseBlock
-            && blockType === lastBlurSnippet_blockType
-            && fieldType === lastBlurSnippet_fieldType;
+        return pathToIfThenElse === lastBlur_pathToIfThenElse
+            && blockType === lastBlur_blockType
+        ;
     }
 
-    get previewWidget() {
-        const filledVariablesList: string[] = [];
-        const resultIfThenElseList: IMessageTemplate.IfThenElseBlock[] = [];
+    /**
+     * Получить одно уровневые ifThenElse-ы для определённого уровня
+     *
+     * @param blockType
+     * @param pathToIfThenElse
+     */
+    public getListIfThenElseInNestingLevel(
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        pathToIfThenElse: IMessageTemplate.PathToIfThenElse,
+    ): IMessageTemplate.IfThenElse[] {
+        // для дополнительного блока не существует вложенных ifThenElse
+        if (blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+            throw new Error("Can't find ifThenElse's blocks in ADDITIONAL block!");
+        }
 
-        for (const [ variableKey, variableValue] of this._variables.entries()) {
+        const listIfThenElseInNestingLevel = Array.from(this._listIfThenElse)
+            .filter(([currentPathToIfThenElse]) => checkIsPathHasSubPath(currentPathToIfThenElse, { pathToIfThenElse, blockType }, { checkingSameLevel: true }))
+            .map(([, currentIfThenElse]) => currentIfThenElse)
+        ;
+
+        // Маленькая проверка на разные длины путей, это конечно не спасёт нас на 100%, но поможет не ошибиться
+        for (const ifThenElse_current of listIfThenElseInNestingLevel) {
+            const {
+                nestingLevel: nestingLevelIfThenElse_first,
+            } = getParentIfThenElseInfo(listIfThenElseInNestingLevel[0].path);
+            const {
+                nestingLevel: nestingLevelIfThenElse_current,
+            } = getParentIfThenElseInfo(ifThenElse_current.path);
+
+            if (nestingLevelIfThenElse_first !== nestingLevelIfThenElse_current) {
+                throw new Error(`There are different levels ifThenElse in listIfThenElseInNestingLevel! First path - "${ifThenElse_current.path}", second path - "${listIfThenElseInNestingLevel[0]?.path}"`);
+            }
+        }
+
+        return listIfThenElseInNestingLevel
+            .sort(({ position: prevPosition }, { position: nextPosition }) => prevPosition - nextPosition)
+        ;
+    }
+
+    get previewWidget(): string {
+        const filledVariablesList: string[] = [];
+        const resultIfThenElseList: IMessageTemplate.IfThenElse[] = [];
+
+        for (const [ variableKey, variableValue] of this._listVariables.entries()) {
             if (variableValue !== '') {
                 filledVariablesList.push(
                     _keyToVariable(variableKey)
@@ -926,46 +758,50 @@ export default class MessageTemplate {
             }
         }
 
-        for (const currentIfThenElse of this._mapOfIfThenElseBlocks.values()) {
+        for (const currentIfThenElse of this._listIfThenElse.values()) {
             /** Здесь выставится false если ifThenElse не попадает в результирующее сообщение */
             let isIncludeInResultIfThenElse = true;
             const {
-                path,
+                path: pathToIfThenElse_current,
             } = currentIfThenElse;
 
             // если path отсутствует, то это первый ifThenElse, он точно будет в результирующем сообщении
-            if (!path) {
+            if (!pathToIfThenElse_current) {
                 resultIfThenElseList.push(currentIfThenElse);
 
                 continue;
             }
 
-            const listOfParentBlocks = path.split(SEPARATOR_FOR_PATH);
+            const listIfThenElseInfo_parent = getListParentsIfThenElseInfo(pathToIfThenElse_current);
 
-            // начинаем с последнего и идём к первому
-            for (let index = listOfParentBlocks.length - 1; index >= 0; index--) {
-                const parentBlockType: MESSAGE_TEMPLATE_BLOCK_TYPE = Number(
-                    listOfParentBlocks.pop()
-                ) as MESSAGE_TEMPLATE_BLOCK_TYPE;
-                const pathToParentBlock = listOfParentBlocks.join(
-                    SEPARATOR_FOR_PATH,
-                ) as IMessageTemplate.PathToBlock;
-                const parentIfThenElse = this.getIfThenElse(
-                    pathToParentBlock,
+            for (const parentIfThenElseInfo_current of listIfThenElseInfo_parent) {
+                const {
+                    blockType: blockTypeParentIfThenElse_current,
+                    pathToIfThenElse: pathToParentIfThenElse_current,
+                    nestingLevel: nestingLevelParentIfThenElse_current,
+                } = parentIfThenElseInfo_current;
+
+                // первый ifThenElse не подлежит проверке, он безусловно попадает в результирующее сообщение
+                if (nestingLevelParentIfThenElse_current === 0) {
+                    continue;
+                }
+
+                const parentIfThenElse = this.getIfThenElseByPath(
+                    pathToParentIfThenElse_current,
                     { force: true },
-                ) as IMessageTemplate.IfThenElseBlock;
+                ) as IMessageTemplate.IfThenElse;
                 const {
                     conditionalIf,
                 } = parentIfThenElse;
                 /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
                 const isEmptyDependencyVariable = !filledVariablesList.includes(conditionalIf);
 
-                if (parentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
+                if (blockTypeParentIfThenElse_current === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
                     if (!isEmptyDependencyVariable) {
                         isIncludeInResultIfThenElse = false;
                     }
                 }
-                else if (parentBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
+                else if (blockTypeParentIfThenElse_current === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
                     if (isEmptyDependencyVariable) {
                         isIncludeInResultIfThenElse = false;
                     }
@@ -980,12 +816,13 @@ export default class MessageTemplate {
             }
         }
 
-        const resultBlocksOfIfThenElseList: IMessageTemplate.MessageSnippets[] = [];
+        const resultBlocksOfIfThenElseList: IMessageTemplate.MessageSnippetsInfo[] = [];
 
         for (const currentIfThenElse of resultIfThenElseList) {
             const {
-                messageSnippets_THEN,
-                messageSnippets_ELSE,
+                messageSnippetsInfoThen,
+                messageSnippetsInfoElse,
+                messageSnippetsInfoAdditional,
                 conditionalIf,
             } = currentIfThenElse;
             const listOfSubstringsOfConditionalIf = conditionalIf.split(REGEXP_FOR_FIND_KEYS_OF_VARIABLES)
@@ -996,7 +833,7 @@ export default class MessageTemplate {
             let countFilledVariables = 0;
             let isPushedThenOrElseBlock = false;
             for (const substringOfConditionalIf of listOfSubstringsOfConditionalIf) {
-                const isKeyOfVariable = Array.from(this._variables.keys())
+                const isKeyOfVariable = Array.from(this._listVariables.keys())
                     .map(variableKey => `{${variableKey}}`)
                     .includes(substringOfConditionalIf)
                 ;
@@ -1009,7 +846,7 @@ export default class MessageTemplate {
                 }
                 // любой текст если есть в if отличающийся от переменной - значит это true
                 else {
-                    resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoThen);
 
                     isPushedThenOrElseBlock = true;
 
@@ -1017,35 +854,32 @@ export default class MessageTemplate {
                 }
             }
 
+            resultBlocksOfIfThenElseList.push(messageSnippetsInfoAdditional);
+
             if (!isPushedThenOrElseBlock) {
                 // если только заполненные переменные в If, то это true
                 if (countFilledVariables === listOfSubstringsOfConditionalIf.length) {
-                    resultBlocksOfIfThenElseList.push(messageSnippets_THEN);
+                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoThen);
                 }
                 // иначе только переменные и среди них есть не заполненные, значит false
                 else {
-                    resultBlocksOfIfThenElseList.push(messageSnippets_ELSE);
+                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoElse);
                 }
             }
         }
 
-        const resultFields: IMessageTemplate.MessageFieldDetails[] = [
-            this._defaultMessageSnippets,
+        const resultFields: IMessageTemplate.FieldInfo[] = [
+            this._messageSnippetInfoInitial,
             ...resultBlocksOfIfThenElseList,
-        ].reduce((fieldsDetails: IMessageTemplate.MessageFieldDetails[], messageSnippet: IMessageTemplate.MessageSnippets) => {
+        ].reduce((fieldsDetails, messageSnippet) => {
             const {
                 field,
-                fieldAdditional,
             } = messageSnippet;
 
             fieldsDetails.push(field);
 
-            if (fieldAdditional) {
-                fieldsDetails.push(fieldAdditional);
-            }
-
             return fieldsDetails;
-        }, [])
+        }, [] as IMessageTemplate.FieldInfo[])
             .sort((fieldPrev, fieldNext) => {
                 return fieldPrev.positionInResultMessage - fieldNext.positionInResultMessage
             })
@@ -1055,30 +889,96 @@ export default class MessageTemplate {
             return resultMessage + fieldDetails.message;
         }, '');
 
-        return generatorMessage(resultString, Object.fromEntries(this._variables));
+        return generatorMessage(resultString, Object.fromEntries(this._listVariables));
     }
 
-    public variablesListToDTO(): IMessageTemplate.VariablesListDTO {
-        return [ ...this._variables.keys() ];
+    /**
+     * Получить текст для текстового поля
+     *
+     * @param path
+     * @param blockType
+     */
+    public getMessageSnippetOrVariableValue(
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        path = '' as IMessageTemplate.PathToIfThenElse,
+    ): string {
+        if (blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL) {
+            return this._messageSnippetInfoInitial.field.message;
+        }
+        else {
+            const ifThenElse = this.getIfThenElseByPath(path, { force: true }) as IMessageTemplate.IfThenElse;
+
+            switch (blockType) {
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
+                    return ifThenElse.messageSnippetsInfoThen.field.message;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
+                    return ifThenElse.messageSnippetsInfoElse.field.message;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL: {
+                    return ifThenElse.messageSnippetsInfoAdditional.field.message;
+                }
+                default: {
+                    throw new Error('Unknown block type!');
+                }
+            }
+        }
+    }
+
+    /**
+     * Получить данные для блока
+     *
+     * @param path
+     * @param blockType
+     */
+    public getMessageSnippetInfo(
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        path = '' as IMessageTemplate.PathToIfThenElse,
+    ): IMessageTemplate.MessageSnippetsInfo {
+        if (blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL) {
+            return this._messageSnippetInfoInitial;
+        }
+        else {
+            const ifThenElse = this.getIfThenElseByPath(path, { force: true }) as IMessageTemplate.IfThenElse;
+
+            switch (blockType) {
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
+                    return ifThenElse.messageSnippetsInfoThen;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
+                    return ifThenElse.messageSnippetsInfoElse;
+                }
+                case MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL: {
+                    return ifThenElse.messageSnippetsInfoAdditional;
+                }
+                default: {
+                    throw new Error('Unknown block type!');
+                }
+            }
+        }
+    }
+
+    public variablesListToDTO(): IMessageTemplate.VariablesKeysList {
+        return [ ...this._listVariables.keys() ];
     }
 
     public toJSON(): MessageTemplateJSON {
-        const ifThenElseBlockInfoListJSON: IfThenElseBlockInfoJSON[] = [];
+        const listIfThenElse: IfThenElseItemJSON[] = [];
 
         for (const [
-            keyIfThenElseBlock,
-            ifThenElseBlock
-        ] of this._mapOfIfThenElseBlocks.entries()) {
-            ifThenElseBlockInfoListJSON.push({
-                ifThenElseBlock,
-                key: keyIfThenElseBlock,
+            pathToIfThenElse,
+            ifThenElse
+        ] of this._listIfThenElse.entries()) {
+            listIfThenElse.push({
+                ifThenElse,
+                pathToIfThenElse,
             });
         }
 
         return {
-            ifThenElseBlockInfoListJSON,
-            lastBlurInformation: this._lastBlurInformation,
-            defaultMessageSnippets: this._defaultMessageSnippets,
+            listIfThenElse,
+            messageSnippetInfoInitial: this._messageSnippetInfoInitial,
+            lastBlurInfo: this._lastBlurInfo,
         }
     }
 
@@ -1088,6 +988,7 @@ export default class MessageTemplate {
 
         return messageTemplateJSON as unknown as MessageTemplateDTO;
     }
+
     // public toDTO(): MessageTemplateDTO {
     //     const messageTemplateJSON = this.toJSON();
     //
@@ -1161,18 +1062,38 @@ export default class MessageTemplate {
     //     return messageTemplateDTO;
     // }
 
+    /**
+     * Создать путь для ifThenElse
+     *
+     * @param positionIfThenElse - Позиция среди соседних одно уровневых ifThenElse
+     * @param blockType - тип родительского блока
+     * @param pathToIfThenElse - путь к родительскому ifThenElse
+     * @private
+     */
+    public static createPath(
+        positionIfThenElse: number,
+        blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+        pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse,
+    ): IMessageTemplate.PathToIfThenElse {
+        return createPath(
+            positionIfThenElse,
+            blockType,
+            pathToIfThenElse,
+        );
+    }
+
     // todo: восстановить DTO
     public static fromDTO(
         messageTemplateDTO: MessageTemplateDTO,
         stateChangeNotify: Function,
-        variablesList: IMessageTemplate.VariablesListDTO,
+        variablesKeysList: IMessageTemplate.VariablesKeysList,
     ): MessageTemplate {
         const messageTemplateJSON: MessageTemplateJSON = MessageTemplate.dtoToJSON(messageTemplateDTO);
 
         return new MessageTemplate({
             messageTemplateJSON,
             stateChangeNotify,
-            variablesList,
+            variablesKeysList,
         });
     }
     // public static fromDTO(
@@ -1226,42 +1147,6 @@ export default class MessageTemplate {
     //     };
     // }
 
-    /**
-     * Собрать родительский путь к новому дочернему блоку IF_THEN_ELSE
-     *
-     * @param currentBlockType - тип текущего блока (void 0 для самого первого блока (не IF_THEN_ELSE)
-     * @param path - путь к родительскому блоку (включая его самого) IF_THEN_ELSE (void 0 если это первый IF_THEN_ELSE или самое первое поле) {@link IMessageTemplate}
-     * @private
-     */
-    public static createPath(
-        currentBlockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
-        path?: IMessageTemplate.PathToBlock | void,
-    ): IMessageTemplate.PathToBlock | void {
-        // типа текущего блока не будет только в одном случае, если это самый первый блок (не IF_THEN_ELSE)
-        if (!currentBlockType) {
-            return;
-        }
-        // если тип текущего блока есть, но путь отсутствует, значит это первый IF_THEN_ELSE
-        else if (!path) {
-            return String(currentBlockType) as IMessageTemplate.PathToBlock;
-        }
-
-        // путь к новому IF_THEN_ELSE блоку внутри блока THEN
-        return `${path}/${currentBlockType}` as IMessageTemplate.PathToBlock;
-    }
-
-    /**
-     * Генератор ключа для переменных или для подстроки результирующего сообщения
-     *
-     * @param path - путь к родительскому блоку (включая его самого) (если void 0, то это путь к первому ifThenElse)
-     * @private
-     */
-    private static _createKeyForIfThenElseBlock(
-        path?: IMessageTemplate.PathToBlock | void,
-    ): IMessageTemplate.KeyIfThenElseBlock {
-        return (path ? path: '') as IMessageTemplate.KeyIfThenElseBlock;
-    }
-
     public static checkMaxNestedIfThenElse(countNested: number) {
         if (countNested > MAX_RECURSION_OF_NESTED_BLOCKS) {
             const textError = 'Превышен порог максимальной вложенности ifThenElse друг в друга, программа зациклилась!';
@@ -1275,127 +1160,98 @@ export default class MessageTemplate {
     }
 }
 
-function _checkIsIfThenElseBlock(
-    ifThenElseBlock: IMessageTemplate.IfThenElseBlock | any,
-): ifThenElseBlock is IMessageTemplate.IfThenElseBlock  {
-    if (typeof ifThenElseBlock !== 'object') {
-        return false;
-    }
-
-    const {
-        conditionalIf,
-        messageSnippets_THEN,
-        messageSnippets_ELSE,
-    } = (ifThenElseBlock || {}) as IMessageTemplate.IfThenElseBlock;
-
-    return !(conditionalIf === void 0
-        || messageSnippets_THEN === void 0
-        || messageSnippets_ELSE === void 0)
-    ;
-}
-
-function _assertIsIfThenElseBlock(
-    ifThenElseBlock: IMessageTemplate.IfThenElseBlock | any,
-): asserts ifThenElseBlock is IMessageTemplate.IfThenElseBlock  {
-    const textError = 'MessageSnippets is any type';
-
-    if (!_checkIsIfThenElseBlock(ifThenElseBlock)) {
-        throw new Error(textError);
-    }
-}
-
 /**
  * THEN/ELSE или первый блок => в DTO формат
  *
  * @param messageSnippetsJSON
  */
-function _messageSnippetsJSONToDTO(messageSnippetsJSON: IMessageTemplate.MessageSnippets): MessageSnippetsDTO             {
-    const messageSnippetsDTO = new Array(MessageSnippetsDTO_Props.__SIZE__) as MessageSnippetsDTO;
-
-    const {
-        path,
-        field,
-        fieldAdditional,
-        blockType,
-    } = messageSnippetsJSON;
-
-    messageSnippetsDTO[MessageSnippetsDTO_Props.path] = path;
-    messageSnippetsDTO[MessageSnippetsDTO_Props.blockType] = blockType;
-
-    // field
-    {
-        const {
-            fieldType,
-            message,
-            positionInResultMessage,
-            isCanSplit,
-        } = field;
-        const messageFieldDetailsDTO = new Array(MessageFieldDetailsDTO_Props.__SIZE__) as MessageFieldDetailsDTO;
-
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.message] = message;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.positionInResultMessage] = positionInResultMessage;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.isCanSplit] = isCanSplit;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.fieldType] = fieldType;
-
-        messageSnippetsDTO[MessageSnippetsDTO_Props.field] = messageFieldDetailsDTO;
-    }
-
-    // field additional
-    if (fieldAdditional !== void 0) {
-        const {
-            message,
-            positionInResultMessage,
-            isCanSplit,
-            fieldType,
-        } = fieldAdditional;
-        const messageFieldDetailsDTO = new Array(MessageFieldDetailsDTO_Props.__SIZE__) as MessageFieldDetailsDTO;
-
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.message] = message;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.positionInResultMessage] = positionInResultMessage;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.isCanSplit] = isCanSplit;
-        messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.fieldType] = fieldType;
-
-        messageSnippetsDTO[MessageSnippetsDTO_Props.fieldAdditional] = messageFieldDetailsDTO;
-    }
-
-    return messageSnippetsDTO;
-}
+// function _messageSnippetsJSONToDTO(messageSnippetsJSON: IMessageTemplate.MessageSnippetsInfo): MessageSnippetsDTO             {
+//     const messageSnippetsDTO = new Array(MessageSnippetsDTO_Props.__SIZE__) as MessageSnippetsDTO;
+//
+//     const {
+//         path,
+//         field,
+//         fieldAdditional,
+//         blockType,
+//     } = messageSnippetsJSON;
+//
+//     messageSnippetsDTO[MessageSnippetsDTO_Props.path] = path;
+//     messageSnippetsDTO[MessageSnippetsDTO_Props.blockType] = blockType;
+//
+//     // field
+//     {
+//         const {
+//             fieldType,
+//             message,
+//             positionInResultMessage,
+//             isCanSplit,
+//         } = field;
+//         const messageFieldDetailsDTO = new Array(MessageFieldDetailsDTO_Props.__SIZE__) as MessageFieldDetailsDTO;
+//
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.message] = message;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.positionInResultMessage] = positionInResultMessage;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.isCanSplit] = isCanSplit;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.fieldType] = fieldType;
+//
+//         messageSnippetsDTO[MessageSnippetsDTO_Props.field] = messageFieldDetailsDTO;
+//     }
+//
+//     // field additional
+//     if (fieldAdditional !== void 0) {
+//         const {
+//             message,
+//             positionInResultMessage,
+//             isCanSplit,
+//             fieldType,
+//         } = fieldAdditional;
+//         const messageFieldDetailsDTO = new Array(MessageFieldDetailsDTO_Props.__SIZE__) as MessageFieldDetailsDTO;
+//
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.message] = message;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.positionInResultMessage] = positionInResultMessage;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.isCanSplit] = isCanSplit;
+//         messageFieldDetailsDTO[MessageFieldDetailsDTO_Props.fieldType] = fieldType;
+//
+//         messageSnippetsDTO[MessageSnippetsDTO_Props.fieldAdditional] = messageFieldDetailsDTO;
+//     }
+//
+//     return messageSnippetsDTO;
+// }
 
 /**
  * THEN/ELSE или первый блок => из DTO в JSON формат
  *
  * @param messageSnippetsDTO
  */
-function _messageSnippetsDTOtoJSON(messageSnippetsDTO: MessageSnippetsDTO): IMessageTemplate.MessageSnippets {
-    const fieldDTO: MessageFieldDetailsDTO = messageSnippetsDTO[MessageSnippetsDTO_Props.field];
-    const fieldAdditionalDTO: MessageFieldDetailsDTO = messageSnippetsDTO[MessageSnippetsDTO_Props.fieldAdditional];
-    const fieldJSON: IMessageTemplate.MessageFieldDetails = {
-        fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
-        message: _normalizeString(fieldDTO[MessageFieldDetailsDTO_Props.message]),
-        isCanSplit: fieldDTO[MessageFieldDetailsDTO_Props.isCanSplit],
-        positionInResultMessage: fieldDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
-    };
-
-    const fieldAdditional_isCanSplit: boolean | void = (fieldAdditionalDTO || [])[MessageFieldDetailsDTO_Props.isCanSplit];
-
-    if (fieldAdditional_isCanSplit === true) {
-        throw new Error('Flag isCanSplit of fieldAdditionalDTO can\'t be true!');
-    }
-
-    return {
-        path: _nullToVoid0(messageSnippetsDTO[MessageSnippetsDTO_Props.path]),
-        blockType: _nullToVoid0(messageSnippetsDTO[MessageSnippetsDTO_Props.blockType]),
-        field: fieldJSON,
-        fieldAdditional: fieldAdditionalDTO
-            ? {
-                fieldType: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.fieldType],
-                message: _normalizeString(fieldAdditionalDTO[MessageFieldDetailsDTO_Props.message]),
-                isCanSplit: fieldAdditional_isCanSplit,
-                positionInResultMessage: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
-            }
-            : void 0,
-    }
-}
+// function _messageSnippetsDTOtoJSON(messageSnippetsDTO: MessageSnippetsDTO): IMessageTemplate.MessageSnippets {
+//     const fieldDTO: MessageFieldDetailsDTO = messageSnippetsDTO[MessageSnippetsDTO_Props.field];
+//     const fieldAdditionalDTO: MessageFieldDetailsDTO = messageSnippetsDTO[MessageSnippetsDTO_Props.fieldAdditional];
+//     const fieldJSON: IMessageTemplate.MessageFieldDetails = {
+//         fieldType: MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL,
+//         message: _normalizeString(fieldDTO[MessageFieldDetailsDTO_Props.message]),
+//         isCanSplit: fieldDTO[MessageFieldDetailsDTO_Props.isCanSplit],
+//         positionInResultMessage: fieldDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
+//     };
+//
+//     const fieldAdditional_isCanSplit: boolean | void = (fieldAdditionalDTO || [])[MessageFieldDetailsDTO_Props.isCanSplit];
+//
+//     if (fieldAdditional_isCanSplit === true) {
+//         throw new Error('Flag isCanSplit of fieldAdditionalDTO can\'t be true!');
+//     }
+//
+//     return {
+//         path: _nullToVoid0(messageSnippetsDTO[MessageSnippetsDTO_Props.path]),
+//         blockType: _nullToVoid0(messageSnippetsDTO[MessageSnippetsDTO_Props.blockType]),
+//         field: fieldJSON,
+//         fieldAdditional: fieldAdditionalDTO
+//             ? {
+//                 fieldType: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.fieldType],
+//                 message: _normalizeString(fieldAdditionalDTO[MessageFieldDetailsDTO_Props.message]),
+//                 isCanSplit: fieldAdditional_isCanSplit,
+//                 positionInResultMessage: fieldAdditionalDTO[MessageFieldDetailsDTO_Props.positionInResultMessage],
+//             }
+//             : void 0,
+//     }
+// }
 
 function _variablesInfoListDTOToJSON(variablesInfoListDTO: VariableInfoDTO[]): VariableInfoJSON[] {
     return variablesInfoListDTO;
@@ -1405,42 +1261,12 @@ function _variablesInfoListJSONToDTO(variablesInfoListJSON: VariableInfoJSON[]):
     return variablesInfoListJSON;
 }
 
-/**
- * После localStorage строка вида '' превращается в null,
- * в input нельзя сохранять null, значит конвертируем ложные значения в пустую строку ''.
- *
- * @param dependencyVariableName
- */
-function _normalizeString(dependencyVariableName?: string): string {
-    return dependencyVariableName !== void 0 && dependencyVariableName !== null
-        ? dependencyVariableName
-        : ''
-    ;
-}
-
-
-function _nullToVoid0(value: any) {
-    return value !== null
-        ? value
-        : void 0
-    ;
-}
-
 function insertSubstringInString(text: string, subText: string, position: number): string {
     const splitTextArray = text.split('');
 
     splitTextArray.splice(position, 0, subText);
 
     return splitTextArray.join('');
-}
-
-/**
- * Отображаемую переменную конвертировать в ключ от переменной
- *
- * @param variable
- */
-function _variableToKey(variable: string) {
-
 }
 
 /**
@@ -1456,4 +1282,229 @@ function _keyToVariable(key: string) {
     ;
 
     return `{${variable}}`
+}
+
+/**
+ * Создать IF_THEN_ELSE блок
+ *
+ * @param positions
+ * @param positions.positionIfThenElse - Позиция среди соседних одно уровневых ifThenElse
+ * @param positions.positionInResultMessage - Номер позиции в результирующем сообщении для текстового поля в then
+ * @param blockType - Тип родительского блока
+ * @param messageSnippetsInfoAdditionalText - Остаточный текст от разбитого текстового поля (всё что после курсора было)
+ * @param pathToIfThenElse - Путь к родительскому ifThenElse
+ * @private
+*/
+function _createIfThenElse(
+    positions: {
+        positionInResultMessage: number,
+        positionIfThenElse: number,
+    },
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL
+        | MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+        | MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE,
+    messageSnippetsInfoAdditionalText: string,
+    pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse,
+): IMessageTemplate.IfThenElse {
+    const {
+        positionInResultMessage,
+        positionIfThenElse,
+    } = positions;
+
+    return {
+        path: pathToIfThenElse,
+        conditionalIf: '',
+        position: positionIfThenElse,
+        messageSnippetsInfoThen: {
+            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.THEN,
+            field: {
+                message: '',
+                positionInResultMessage,
+            },
+        },
+        messageSnippetsInfoElse: {
+            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE,
+            field: {
+                message: '',
+                positionInResultMessage: positionInResultMessage + 1/* Следующий - на одну позицию позже */ ,
+            },
+        },
+        messageSnippetsInfoAdditional: {
+            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL,
+            field: {
+                message: messageSnippetsInfoAdditionalText,
+                positionInResultMessage: positionInResultMessage + 2/* Следующий - на две позиции позже */,
+            },
+        },
+    }
+}
+
+/**
+ * Получить информацию о местонахождении курсора после удаления ifThenElse,
+ * здесь заложена логика, согласно которой, после удаления такого ifThenElse, курсор найдёт своё новое текстовое поле,
+ * где он окажется (если курсор был внутри удалённого или предка удалённого ifThenElse)
+ *
+ * @param listIfThenElse
+ * @param lastBlurInfo
+ * @param pathToIfThenElse_deleted
+ * @param details
+ */
+function _getLastBlurInfoAfterDeleteIfThenElse(
+    listIfThenElse: Map<IMessageTemplate.PathToIfThenElse, IMessageTemplate.IfThenElse>,
+    lastBlurInfo: IMessageTemplate.LastBlurInfo,
+    pathToIfThenElse_deleted: IMessageTemplate.PathToIfThenElse,
+    details: {
+        positionIfThenElse_deleted: number,
+        messageSnippetInfoInitial_contentLength: number,
+    },
+): IMessageTemplate.LastBlurInfo {
+    const {
+        positionIfThenElse_deleted,
+        messageSnippetInfoInitial_contentLength,
+    } = details;
+    const {
+        pathToIfThenElse: pathToParentIfThenElse_deleted,
+        blockType: parentBlockTypeIfThenElse_deleted,
+    } = getParentIfThenElseInfo(pathToIfThenElse_deleted);
+    //
+    const isLastBlurIfThenElseContainDeletedIfThenElse = checkIsPathHasSubPath(
+        lastBlurInfo.pathToIfThenElse,
+        {
+            pathToIfThenElse: pathToIfThenElse_deleted,
+        }
+    );
+
+    // версию курсора в любом случае обновим, что бы он обновился после нажатия по кнопку
+    lastBlurInfo.version++;
+
+    const pathToIfThenElseDeleted_prev = createPath(
+        /* Взяли ifThenElse на позицию раньше */
+        positionIfThenElse_deleted - 1,
+        parentBlockTypeIfThenElse_deleted,
+        pathToParentIfThenElse_deleted,
+    );
+    //
+    const ifThenElseDeleted_next = _getIfThenElseByPath(pathToIfThenElse_deleted, listIfThenElse);
+    const ifThenElseDeleted_parent = _getIfThenElseByPath(pathToParentIfThenElse_deleted, listIfThenElse);
+    const ifThenElseDeleted_prev = _getIfThenElseByPath(pathToIfThenElseDeleted_prev, listIfThenElse);
+
+    // 1) пытаемся воткнуть курсор в ifThenElse на той же позиции (бывший следующим после удалённого, ifThenElse, встал на место удалённого);
+    if (ifThenElseDeleted_next) {
+        lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_next.path;
+        // в текстовое поле "if"
+        lastBlurInfo.blockType = MESSAGE_TEMPLATE_BLOCK_TYPE.NULL;
+        lastBlurInfo.cursorPosition = ifThenElseDeleted_next.conditionalIf.length;
+    }
+    // 2) пытаемся воткнуть в ifThenElse на позицию раньше
+    else if (positionIfThenElse_deleted > 0) {
+        if (!ifThenElseDeleted_prev) {
+            throw new Error("Can't find ifThenElseDeleted_prev, but it is required in this case!");
+        }
+
+        lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_prev.path;
+        lastBlurInfo.blockType = MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL;
+        lastBlurInfo.cursorPosition = ifThenElseDeleted_prev.conditionalIf.length;
+    }
+    // 3) пытаемся воткнуть в ifThenElse родительский
+    else if (ifThenElseDeleted_parent) {
+        lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_parent.path;
+        // в родительский блок удалённого ifThenElse
+        lastBlurInfo.blockType = parentBlockTypeIfThenElse_deleted;
+        lastBlurInfo.cursorPosition = ifThenElseDeleted_parent.conditionalIf.length;
+    }
+    // 4) если и это не выходит, то втыкаем на худой случай в исходное поле
+    else {
+        lastBlurInfo.pathToIfThenElse = '' as IMessageTemplate.PathToIfThenElse;
+        lastBlurInfo.blockType = MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL;
+        lastBlurInfo.cursorPosition = messageSnippetInfoInitial_contentLength;
+    }
+
+    // в противном случае не изменяем lastBlurInfo и оставляем всё как было
+    return lastBlurInfo;
+}
+
+/**
+ * Получить ifThenElse по его пути
+ *
+ * @param pathToIfThenElse
+ * @param listIfThenElse
+ * @param options
+ */
+function _getIfThenElseByPath(
+    pathToIfThenElse: IMessageTemplate.PathToIfThenElse,
+    listIfThenElse: Map<IMessageTemplate.PathToIfThenElse, IMessageTemplate.IfThenElse>,
+    options?: { force?: boolean },
+): IMessageTemplate.IfThenElse | void {
+    const {
+        force,
+    } = options || {};
+    const ifThenElse = listIfThenElse.get(pathToIfThenElse);
+
+    if (force && !ifThenElse) {
+        throw new Error(`Can't find ifThenElse by path - "${pathToIfThenElse}"! All paths of ifThenElse list - ${[...listIfThenElse.keys()].map(path => `"${path}"`)}`);
+    }
+
+    return ifThenElse;
+}
+
+/**
+ * Получить позицию текстового сообщения (в результирующем сообщении) для блока THEN созданного ifThenElse
+ *
+ * @param lastBlur_blockType
+ * @param messageSnippets_splitTarget
+ * @param details
+ */
+function _createPositionInResultMessage(
+    lastBlur_blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+    messageSnippets_splitTarget: IMessageTemplate.MessageSnippetsInfo,
+    details: {
+        positionLastFieldInResultMessage_nestingLevel?: number,
+    }
+): number {
+    const {
+        positionLastFieldInResultMessage_nestingLevel,
+    } = details;
+    const isNestedNewIfThenELse = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL
+        || lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+        || lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+    ;
+    const isLastBlurAdditionalBlock = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL;
+
+    if (
+        // если одно уровневый ifThenElse уже хоть один был, до того как мы создали ifThenElse
+        positionLastFieldInResultMessage_nestingLevel !== void 0
+        // и разбили "исходный блок" или "then" или "else"
+        && isNestedNewIfThenELse
+    ) {
+        // то значит добавляем в конец одно уровневых, новый ifThenElse
+        return positionLastFieldInResultMessage_nestingLevel;
+    }
+    else if (
+        // иначе, если разбили дополнительное текстовое поле, то вкидываем одно уровневый ifThenElse после разбитого (опционального поля ifThenElse)
+        isLastBlurAdditionalBlock
+        // в противном случае мы создаём первый вложенный ifThenElse
+        || isNestedNewIfThenELse
+    ) {
+        const {
+            field: {
+                positionInResultMessage,
+            },
+            blockType: blockType_messageSnippetsSplitTarget,
+        } = messageSnippets_splitTarget;
+
+        if (isLastBlurAdditionalBlock) {
+            /*
+                Очень некрасивая проверка,
+                но пока не придумал чего-то лучшего, но без этой проверки есть риск ошибиться
+             */
+            if (blockType_messageSnippetsSplitTarget !== MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+                throw new Error("Block type must be ADDITIONAL!");
+            }
+        }
+
+        return positionInResultMessage;
+    }
+
+    // что-то пошло не так, одно из вышестоящих условий должно было выполниться
+    throw new Error("Incorrect data!");
 }

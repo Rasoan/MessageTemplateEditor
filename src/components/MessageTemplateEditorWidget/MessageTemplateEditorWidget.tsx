@@ -11,6 +11,7 @@ import {shallow} from "zustand/shallow";
 import "./MessageTemplateEditorWidget.scss";
 import MessageTemplatePreviewWidget from "../MessageTemplatePreviewWidget/MessageTemplatePreviewWidget";
 import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
+import {IMessageTemplate, MESSAGE_TEMPLATE_BLOCK_TYPE} from "../../utils/MessageTemplate/types/MessageTemplate";
 
 interface MessageTemplateEditorWidgetProps {
     /** асинхронный callback сохранения шаблона */
@@ -31,15 +32,16 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
         setIsOpenMessageTemplateEditor,
         isOpenMessageTemplatePreviewWidget,
         setIsOpenMessageTemplatePreviewWidget,
+        clearVariablesValue,
     ] = useBaseStore(
         stateManager => [
             stateManager.state.setIsOpenMessageTemplateEditor,
             stateManager.state.isOpenMessageTemplatePreviewWidget,
             stateManager.state.setIsOpenMessageTemplatePreviewWidget,
+            stateManager.state.messageTemplate.clearListVariables,
             //
-            stateManager.state.messageTemplate.reset,
             stateManager.state.messageTemplate.previewWidget,
-            stateManager.state.messageTemplate.countIfThenElseBlocks,
+            stateManager.state.messageTemplate.getAllFields().length,
             stateManager.state.isOpenMessageTemplateEditor,
         ],
         shallow,
@@ -60,7 +62,7 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
     }
     const splitBlockAndInsertIfThenElse = () => {
         try {
-            messageTemplate.splitFieldAndInsertIfThenElseBlock();
+            messageTemplate.splitFieldAndInsertIfThenElse();
         }
         catch(error) {
             alert(error);
@@ -72,6 +74,11 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
     const handleOpenMessageTemplateEditorWidget = () => {
         setIsOpenMessageTemplatePreviewWidget(true);
     }
+
+    const handleClosePreviewWidget = () => {
+        setIsOpenMessageTemplatePreviewWidget(false);
+        clearVariablesValue();
+    };
 
     return <div
         className={"MessageTemplateEditorWidget"}
@@ -123,10 +130,12 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
         >
             <MessageSnippetsBlock
                 countNested={1}
+                blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL}
+                path={'' as IMessageTemplate.PathToIfThenElse}
             />
         </div>
         {isOpenMessageTemplatePreviewWidget ? <>
-                <MessageTemplatePreviewWidget />
+                <MessageTemplatePreviewWidget handleClose={handleClosePreviewWidget} />
             </>
             : null}
         <div

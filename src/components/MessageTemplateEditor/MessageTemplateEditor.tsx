@@ -8,46 +8,36 @@ import "./MessageTemplateEditor.scss";
 import {
     IMessageTemplate,
     MESSAGE_TEMPLATE_BLOCK_TYPE,
-    MESSAGE_TEMPLATE_FIELD_TYPE
 } from "../../utils/MessageTemplate/types/MessageTemplate";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
 import {onKeyDown_or_mouseClick} from "../../utils/utils";
 
 interface MessageTemplateEditorProps {
-    /** true если можно разбить на 2 */
-    isCanSplit: boolean;
-    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void;
-    fieldType: MESSAGE_TEMPLATE_FIELD_TYPE;
-    path?: IMessageTemplate.PathToBlock | void;
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
+    pathToIfThenElse: IMessageTemplate.PathToIfThenElse;
 }
 
 const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const {
-        path,
+        pathToIfThenElse,
         blockType,
-        fieldType,
     } = props;
     const [
         messageTemplate,
         message,
-        isCanSplit,
-        insertedVariablesVersion,
+        lastBlurVersion,
     ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
-            stateManager.state.messageTemplate.getBlockInformationForce(
-                path,
+            stateManager.state.messageTemplate.getMessageSnippetOrVariableValue(
                 blockType,
-            )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].message,
-            stateManager.state.messageTemplate.getBlockInformationForce(
-                path,
-                blockType,
-            )[fieldType === MESSAGE_TEMPLATE_FIELD_TYPE.INITIAL ? 'field' : 'fieldAdditional'].isCanSplit,
-            stateManager.state.messageTemplate.lastBlurInformation?.insertedVariablesVersion,
-            stateManager.state.messageTemplate.lastBlurInformation.pathToIfThenElseBlock,
-            stateManager.state.messageTemplate.lastBlurInformation?.snippetMessageInformation?.fieldType,
-            stateManager.state.messageTemplate.lastBlurInformation?.snippetMessageInformation?.blockType,
+                pathToIfThenElse,
+            ),
+            stateManager.state.messageTemplate.lastBlurInfo.version,
+            stateManager.state.messageTemplate.lastBlurInfo.pathToIfThenElse,
+            stateManager.state.messageTemplate.lastBlurInfo.blockType,
+            stateManager.state.messageTemplate.lastBlurInfo.cursorPosition
         ],
         shallow,
     );
@@ -55,9 +45,8 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     const ref = useRef<HTMLTextAreaElement>(null);
 
     const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(
-        path,
-        fieldType,
         blockType,
+        pathToIfThenElse,
     );
 
     /*
@@ -68,8 +57,8 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
      */
     useEffect(() => {
         const {
-            lastBlurInformation: {
-                cursorPosition,
+            lastBlurInfo: {
+                cursorPosition: lastBlurInfo_cursorPosition,
             },
         }  = messageTemplate;
 
@@ -81,11 +70,11 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             if (current) {
                 current.focus();
 
-                current.selectionStart = cursorPosition;
-                current.selectionEnd = cursorPosition;
+                current.selectionStart = lastBlurInfo_cursorPosition;
+                current.selectionEnd = lastBlurInfo_cursorPosition;
             }
         }
-    }, [ isCanSplit, insertedVariablesVersion ]);
+    }, [ lastBlurVersion ]);
 
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLTextAreaElement>) => {
         const {
@@ -95,32 +84,19 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             value,
         } = target as HTMLTextAreaElement;
 
-        messageTemplate.setSnippetMessage(
+        messageTemplate.setMessageSnippetOrVariableValue(
             value,
-            {
-                path,
-                currentBlockType: blockType,
-                fieldType,
-            }
+            blockType,
+            pathToIfThenElse,
         );
     };
-
-    let classBrokenIndicatorForHoverEffect = '';
-
-    if (isThisFieldLastBlur) {
-        // На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле)
-        classBrokenIndicatorForHoverEffect = `MessageTemplateEditor${isCanSplit ? '-canSplit' : '-canNotSplit'}`;
-    }
 
     const onClick = (onClickEvent: React.MouseEvent<HTMLTextAreaElement>) => {
         onKeyDown_or_mouseClick<HTMLTextAreaElement, React.MouseEvent<HTMLTextAreaElement>>(
             onClickEvent,
             messageTemplate,
-            path,
-            {
-                fieldType,
-                blockType,
-            },
+            blockType,
+            pathToIfThenElse,
         );
     };
 
@@ -128,11 +104,8 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         onKeyDown_or_mouseClick<HTMLTextAreaElement, React.KeyboardEvent<HTMLTextAreaElement>>(
             KeyboardEvent,
             messageTemplate,
-            path,
-            {
-                fieldType,
-                blockType,
-            },
+            blockType,
+            pathToIfThenElse,
         );
     };
 
@@ -141,7 +114,7 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             ref={ref}
             onClick={(Event) => onClick(Event)}
             onKeyUp={(Event) => onKeyUp(Event)}
-            className={`MessageTemplateEditor ${classBrokenIndicatorForHoverEffect}`}
+            className={`MessageTemplateEditor ${isThisFieldLastBlur ? `MessageTemplateEditor-canSplit` : ''/* На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле) */}`}
             value={message}
             onChange={onChangeField}
         />

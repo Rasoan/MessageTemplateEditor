@@ -5,18 +5,18 @@ import * as React from 'react';
 import "./MessageTemplateConditionEditor.scss";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
-import {IMessageTemplate} from "../../utils/MessageTemplate/types/MessageTemplate";
+import {IMessageTemplate, MESSAGE_TEMPLATE_BLOCK_TYPE} from "../../utils/MessageTemplate/types/MessageTemplate";
 import {onKeyDown_or_mouseClick} from "../../utils/utils";
 import {useEffect, useRef} from "react";
 
 interface MessageTemplateConditionEditorProps {
     /** Путь к ifThenElse */
-    path?: IMessageTemplate.PathToBlock | void,
+    pathToIfThenElse: IMessageTemplate.PathToIfThenElse,
 }
 
 const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorProps> = (props) => {
     const {
-        path,
+        pathToIfThenElse,
     } = props;
     const [
         messageTemplate,
@@ -25,13 +25,16 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     ] = useBaseStore(stateManager =>
             [
                 stateManager.state.messageTemplate,
-                stateManager.state.messageTemplate.getDependencyVariableNameForce(path),
-                stateManager.state.messageTemplate.lastBlurInformation?.insertedVariablesVersion,
+                stateManager.state.messageTemplate.getDependencyVariableNameForce(pathToIfThenElse),
+                stateManager.state.messageTemplate.lastBlurInfo.version,
             ],
         shallow,
     );
 
-    const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(path);
+    const isThisFieldLastBlur = messageTemplate.checkIsLastBlurField(
+        MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
+        pathToIfThenElse,
+    );
     const ref = useRef<HTMLInputElement>(null);
 
     /*
@@ -41,7 +44,7 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     */
     useEffect(() => {
         const {
-            lastBlurInformation: {
+            lastBlurInfo: {
                 cursorPosition,
             },
         }  = messageTemplate;
@@ -61,9 +64,10 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
     }, [ insertedVariablesVersion ]);
 
     const onChangeField = (onChangeEvent: React.FormEvent<HTMLInputElement>) => {
-        messageTemplate.setDependencyVariable(
+        messageTemplate.setMessageSnippetOrVariableValue(
             onChangeEvent.currentTarget.value,
-            path,
+            MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
+            pathToIfThenElse,
         );
     };
 
@@ -71,7 +75,8 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
         onKeyDown_or_mouseClick<HTMLInputElement, React.MouseEvent<HTMLInputElement>>(
             onClickEvent,
             messageTemplate,
-            path,
+            MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
+            pathToIfThenElse,
         );
     };
 
@@ -79,7 +84,8 @@ const MessageTemplateConditionEditor: React.FC<MessageTemplateConditionEditorPro
         onKeyDown_or_mouseClick<HTMLInputElement, React.KeyboardEvent<HTMLInputElement>>(
             KeyboardEvent,
             messageTemplate,
-            path,
+            MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
+            pathToIfThenElse,
         );
     };
 

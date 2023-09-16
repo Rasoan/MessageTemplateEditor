@@ -13,15 +13,15 @@ import {
 import "./MessageSnippetsBlock.scss";
 import useBaseStore from "../../store/store";
 import {shallow} from "zustand/shallow";
-import {useEffect} from "react";
+import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 
 interface MessageSnippetsBlockProps {
+    /** Путь к ifThenElse */
+    path: IMessageTemplate.PathToIfThenElse,
+    /** Тип блока */
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
     /** Количество вложенности (это технический параметр - страхуемся от зацикливания) {@link MAX_RECURSION_OF_NESTED_BLOCKS} */
     countNested: number,
-    /** Путь к родительскому ifThenElse блоку */
-    path?: IMessageTemplate.PathToBlock | void,
-    /** Тип блока */
-    blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
 }
 
 const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
@@ -30,59 +30,41 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         blockType,
         countNested,
     } = props;
-    const [ messageTemplate ] = useBaseStore(
+    const [
+        messageTemplate,
+    ] = useBaseStore(
         (stateManager) => [
             stateManager.state.messageTemplate,
-            stateManager.state.messageTemplate.countIfThenElseBlocks,
+            stateManager.state.messageTemplate.getAllFields().length,
         ],
         shallow,
     );
-    const blockInformation = messageTemplate.getBlockInformationForce(
-        path,
+
+    const listIfThenElse = messageTemplate.getListIfThenElseInNestingLevel(
         blockType,
-    );
-    const {
-        path: pathToCurrentBlock,
-        field,
-        fieldAdditional,
-    } = blockInformation;
-    const {
-        fieldType: field_fieldType,
-        isCanSplit: field_isCanSplit,
-        positionInResultMessage: field_positionInResultMessage,
-    } = field;
-    const {
-        fieldType: fieldAdditional_fieldType,
-        isCanSplit: fieldAdditional_isCanSplit,
-        positionInResultMessage: fieldAdditional_positionInResultMessage,
-    } = fieldAdditional || {};
+        path,
+    ).map((currentIfThenElse, positionIfThenElse) => {
+        const newPath = MessageTemplate.createPath(
+            positionIfThenElse,
+            blockType,
+            path,
+        );
+
+        return <IfThenElse
+            key={newPath}
+            path={newPath}
+            countNested={countNested + 1/* Следующая вложенность на 1 глубже */}
+        />
+    });
 
     return <div
         className={'MessageSnippetsBlock'}
     >
         <MessageTemplateEditor
-            isCanSplit={field_isCanSplit}
-            path={path}
+            pathToIfThenElse={path}
             blockType={blockType}
-            fieldType={field_fieldType}
         />
-        {
-            // если поле нельзя разбить, то оно уже разбито, тогда отрисуем дополнительные элементы (IF_THEN_ELSE и второй осколок разбитого поля)
-            !field_isCanSplit
-                ? <>
-                    <IfThenElse
-                        countNested={countNested}
-                        path={pathToCurrentBlock}
-                    />
-                    <MessageTemplateEditor
-                        isCanSplit={fieldAdditional_isCanSplit}
-                        path={path}
-                        blockType={blockType}
-                        fieldType={fieldAdditional_fieldType}
-                    />
-                </>
-                : null
-        }
+        {listIfThenElse}
     </div>;
 }
 

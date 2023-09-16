@@ -8,17 +8,20 @@ import './MessageTemplatePreviewWidget.scss';
 import VariableValueEditor from "../VariableValueEditor/VariableValueEditor";
 import Modal from "../Modal/Modal";
 
-const _MessageTemplatePreviewWidget: React.FC = () => {
+interface _MessageTemplatePreviewWidgetProps {
+    handleClose: () => void;
+}
+
+const _MessageTemplatePreviewWidget: React.FC<_MessageTemplatePreviewWidgetProps> = (props) => {
+    const {
+        handleClose,
+    } = props;
     const [
         messageTemplate,
-        clearVariablesValue,
-        setIsOpenMessageTemplatePreviewWidget,
         previewWidget,
     ] = useBaseStore(stateManager =>
             [
                 stateManager.state.messageTemplate,
-                stateManager.state.messageTemplate.clearVariablesValue,
-                stateManager.state.setIsOpenMessageTemplatePreviewWidget,
                 stateManager.state.messageTemplate.previewWidget,
             ],
         shallow,
@@ -52,10 +55,7 @@ const _MessageTemplatePreviewWidget: React.FC = () => {
             </div>
             <button
                 className={'MessageTemplatePreviewWidget__buttonClose buttonClose'}
-                onClick={() => {
-                    setIsOpenMessageTemplatePreviewWidget(false);
-                    clearVariablesValue();
-                }}
+                onClick={handleClose}
             >
                 Close
             </button>
@@ -63,15 +63,15 @@ const _MessageTemplatePreviewWidget: React.FC = () => {
     </>
 }
 
-const MessageTemplatePreviewWidget: React.FC = () => {
-    const setIsOpenMessageTemplatePreviewWidget = useBaseStore(
-        stateManager => stateManager.state.setIsOpenMessageTemplatePreviewWidget
-    );
+const MessageTemplatePreviewWidget: React.FC<_MessageTemplatePreviewWidgetProps> = (props) => {
+    const {
+        handleClose,
+    } = props;
 
     return <Modal
         isShowing={true}
-        close={() => setIsOpenMessageTemplatePreviewWidget(false)}
-        component={<_MessageTemplatePreviewWidget />}
+        close={handleClose}
+        component={<_MessageTemplatePreviewWidget handleClose={handleClose} />}
     />
 }
 export default MessageTemplatePreviewWidget;
