@@ -51,7 +51,7 @@
 
 # Ответ на feedback
 
-1. Видео из [ютуба](https://www.youtube.com/watch?v=pmc4RAYvRx8&t=535s) или [можно скачать отсюда](imagesForReadme/ifThenElse_Demo.mp4), 
+1. Видео из [ютуба](https://youtu.be/pmc4RAYvRx8?si=fvDFHCef9ERZLPNA&t=96) или [можно скачать отсюда](imagesForReadme/ifThenElse_Demo.mp4), 
 здесь на 1:40 разбивается ifThenElse и курсор перепрыгивает в блок if,
 куда курсор должен перепрыгивать в [ТЗ](readme.md) не сказано, но в [ТЗ](readme.md) есть ссылка на [доку](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates) с этим видео и в видео демонстрируется,
 как после разбития блока, курсор перепрыгивает в блог if;
