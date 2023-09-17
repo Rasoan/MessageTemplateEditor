@@ -791,24 +791,39 @@ export default class MessageTemplate {
                     { force: true },
                 ) as IMessageTemplate.IfThenElse;
                 const {
-                    conditionalIf,
+                    conditionalIf: parentIfThenElseConditionalIf,
                 } = parentIfThenElse;
-                /** Если здесь false, то переменная из поля IF пустая (не заполнена), значит рисуем ELSE */
-                const isEmptyDependencyVariable = !filledVariablesList.includes(conditionalIf);
+                const resultBlockTypeOfParentIfThenElse = _getResultBlockTypeOfIfThenElse(
+                    parentIfThenElse,
+                    {
+                        variablesList: Array.from(this._listVariables.keys()),
+                        filledVariablesList,
+                    }
+                );
 
-                if (blockTypeParentIfThenElse_current === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
-                    if (!isEmptyDependencyVariable) {
-                        isIncludeInResultIfThenElse = false;
-                    }
+                if (
+                    // если у родительского ifThenElse рисуется THEN
+                    resultBlockTypeOfParentIfThenElse === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+                    // а текущий вложен НЕ в THEN
+                    && blockTypeParentIfThenElse_current !== MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+                ) {
+                    // значит этот ifThenElse выпадает
+                    isIncludeInResultIfThenElse = false;
                 }
-                else if (blockTypeParentIfThenElse_current === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
-                    if (isEmptyDependencyVariable) {
-                        isIncludeInResultIfThenElse = false;
-                    }
+                else if (
+                    // если у родительского ifThenElse рисуется ELSE
+                    resultBlockTypeOfParentIfThenElse === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+                    // а текущий вложен НЕ в ELSE
+                    && blockTypeParentIfThenElse_current !== MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+                ) {
+                    // значит этот ifThenElse выпадает
+                    isIncludeInResultIfThenElse = false;
                 }
-                else {
-                    throw new Error('Unknown block type');
-                }
+                /*
+                    // А иначе ничего и не будем делать, по умолчанию флаг в true и если эти условия не выполнились,
+                    // значит пропускам этот ifThenElse к дальнейшим проверкам.
+                    else {}
+                */
             }
 
             if (isIncludeInResultIfThenElse) {
@@ -823,49 +838,28 @@ export default class MessageTemplate {
                 messageSnippetsInfoThen,
                 messageSnippetsInfoElse,
                 messageSnippetsInfoAdditional,
-                conditionalIf,
             } = currentIfThenElse;
-            const listOfSubstringsOfConditionalIf = conditionalIf.split(REGEXP_FOR_FIND_KEYS_OF_VARIABLES)
-                // почистим пустые строки
-                .filter(substring => substring !== '')
-            ;
-            /** счётчик заполненных переменных из текста из блока if */
-            let countFilledVariables = 0;
-            let isPushedThenOrElseBlock = false;
-            for (const substringOfConditionalIf of listOfSubstringsOfConditionalIf) {
-                const isKeyOfVariable = Array.from(this._listVariables.keys())
-                    .map(variableKey => `{${variableKey}}`)
-                    .includes(substringOfConditionalIf)
-                ;
 
-                // если текущая строка - ключ переменной
-                if (isKeyOfVariable) {
-                    if (filledVariablesList.includes(substringOfConditionalIf)) {
-                        countFilledVariables++;
-                    }
+            // fixme: здесь "ошибка производительности", дело в том, что эту функцию надо вызывать ТОЛЬКО ОДИН РАЗ, а не два, тогда производительность повысится
+            const resultBlockType = _getResultBlockTypeOfIfThenElse(
+                currentIfThenElse,
+                {
+                    variablesList: Array.from(this._listVariables.keys()),
+                    filledVariablesList,
                 }
-                // любой текст если есть в if отличающийся от переменной - значит это true
-                else {
-                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoThen);
+            );
 
-                    isPushedThenOrElseBlock = true;
-
-                    break;
-                }
+            if (resultBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN) {
+                resultBlocksOfIfThenElseList.push(messageSnippetsInfoThen);
+            }
+            else if (resultBlockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE) {
+                resultBlocksOfIfThenElseList.push(messageSnippetsInfoElse);
+            }
+            else {
+                throw new Error("Unknown block type!");
             }
 
             resultBlocksOfIfThenElseList.push(messageSnippetsInfoAdditional);
-
-            if (!isPushedThenOrElseBlock) {
-                // если только заполненные переменные в If, то это true
-                if (countFilledVariables === listOfSubstringsOfConditionalIf.length) {
-                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoThen);
-                }
-                // иначе только переменные и среди них есть не заполненные, значит false
-                else {
-                    resultBlocksOfIfThenElseList.push(messageSnippetsInfoElse);
-                }
-            }
         }
 
         const resultFields: IMessageTemplate.FieldInfo[] = [
@@ -1507,4 +1501,65 @@ function _createPositionInResultMessage(
 
     // что-то пошло не так, одно из вышестоящих условий должно было выполниться
     throw new Error("Incorrect data!");
+}
+
+/**
+ * Вычислить тип блок от ifThenElse, который отобразим в зависимости от значения в его текстовом поле "if"
+ *
+ * @param ifThenElse - проверяемый ifThenElse
+ * @param variablesInfo
+ */
+function _getResultBlockTypeOfIfThenElse(
+    ifThenElse: IMessageTemplate.IfThenElse,
+    variablesInfo: {
+        filledVariablesList: string[],
+        variablesList: string[],
+    }
+): MESSAGE_TEMPLATE_BLOCK_TYPE.THEN | MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE {
+    const {
+        filledVariablesList,
+        variablesList,
+    } = variablesInfo;
+    const {
+        conditionalIf,
+    } = ifThenElse;
+
+    // для пустой строки в "if" у нас есть замечательный блок под название ELSE, дальше вычислять что-либо смысла нет
+    if (conditionalIf === '') {
+        return MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE;
+    }
+
+    const listOfSubstringsOfConditionalIf = conditionalIf.split(REGEXP_FOR_FIND_KEYS_OF_VARIABLES)
+        // почистим пустые строки
+        .filter(substring => substring !== '')
+    ;
+    /** счётчик заполненных переменных из текста из блока if */
+    let countFilledVariables = 0;
+
+    for (const substringOfConditionalIf of listOfSubstringsOfConditionalIf) {
+        const isKeyOfVariable = variablesList
+            .map(variableKey => _keyToVariable(variableKey))
+            .includes(substringOfConditionalIf)
+        ;
+
+        // если текущая строка - ключ переменной
+        if (isKeyOfVariable) {
+            if (filledVariablesList.includes(substringOfConditionalIf)) {
+                countFilledVariables++;
+            }
+        }
+        // любой текст если есть в if отличающийся от переменной - значит это true
+        else {
+            return MESSAGE_TEMPLATE_BLOCK_TYPE.THEN;
+        }
+    }
+
+    // если только заполненные переменные в If, то это true
+    if (countFilledVariables === listOfSubstringsOfConditionalIf.length) {
+        return MESSAGE_TEMPLATE_BLOCK_TYPE.THEN;
+    }
+    // иначе только переменные и среди них есть не заполненные, значит false
+    else {
+        return MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE;
+    }
 }
