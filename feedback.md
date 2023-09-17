@@ -53,14 +53,14 @@
 
 1. Видео из [ютуба](https://www.youtube.com/watch?v=pmc4RAYvRx8&t=535s) или [можно скачать отсюда](imagesForReadme/ifThenElse_Demo.mp4), 
 здесь на 1:40 разбивается ifThenElse и курсор перепрыгивает в блок if,
-куда курсор должен перепрыгивать в [ТЗ](readme.md) не сказано, но в [ТЗ](readme.md) есть ссылка на [доку](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) с этим видео и в видео демонстрируется,
+куда курсор должен перепрыгивать в [ТЗ](readme.md) не сказано, но в [ТЗ](readme.md) есть ссылка на [доку](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates) с этим видео и в видео демонстрируется,
 как после разбития блока, курсор перепрыгивает в блог if;
 
 
 ![1](imagesForReadme/1_Araik.gif) 
 
 
-2. согласен, да действительно в [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5), есть скриншот и несколько слов об одно уровневых ifThenElse;
+2. согласен, да действительно в [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates), есть скриншот и несколько слов об одно уровневых ifThenElse;
 
 
 ![2](imagesForReadme/2_Araik.png)
@@ -72,16 +72,16 @@
 
 4. согласен, это косяк;
 
-5. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) - ```One operator - one variable in the IF string```,
+5. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates) - ```One operator - one variable in the IF string```,
 перевожу - "оператор IF поддерживает только одну переменную",
-нет в [ТЗ](readme.md) текста про несколько переменных в IF, а раз нет, то взял за основу информацию из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5).
+нет в [ТЗ](readme.md) текста про несколько переменных в IF, а раз нет, то взял за основу информацию из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates).
 
 
 ![5](imagesForReadme/5_Araik.png)
 
 
-6. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) - ```No text, symbols or mathematical operations (for example...```,
-так что в feedback есть противоречие [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5);
+6. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates) - ```No text, symbols or mathematical operations (for example...```,
+так что в feedback есть противоречие [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates);
 
 
 ![6](imagesForReadme/6_Araik.png)
