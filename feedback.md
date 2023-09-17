@@ -53,14 +53,14 @@
 
 1. Видео из [ютуба](https://www.youtube.com/watch?v=pmc4RAYvRx8&t=535s) или [можно скачать отсюда](imagesForReadme/ifThenElse_Demo.mp4), 
 здесь на 1:40 разбивается ifThenElse и курсор перепрыгивает в блок if,
-куда курсор должен перепрыгивать в [ТЗ](readme.md) не сказано, но в [ТЗ](readme.md) есть ссылка на [доку](docs/HowToCreateMessageTemplatesLinkedHelper.html) с этим видео и в видео демонстрируется,
+куда курсор должен перепрыгивать в [ТЗ](readme.md) не сказано, но в [ТЗ](readme.md) есть ссылка на [доку](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) с этим видео и в видео демонстрируется,
 как после разбития блока, курсор перепрыгивает в блог if;
 
 
 ![1](imagesForReadme/1_Araik.gif) 
 
 
-2. согласен, да действительно в [документации](docs/HowToCreateMessageTemplatesLinkedHelper.html), есть скриншот и несколько слов об одно уровневых ifThenElse;
+2. согласен, да действительно в [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5), есть скриншот и несколько слов об одно уровневых ifThenElse;
 
 
 ![2](imagesForReadme/2_Araik.png)
@@ -72,16 +72,16 @@
 
 4. согласен, это косяк;
 
-5. цитирую текст из [документации](docs/HowToCreateMessageTemplatesLinkedHelper.html) - ```One operator - one variable in the IF string```,
+5. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) - ```One operator - one variable in the IF string```,
 перевожу - "оператор IF поддерживает только одну переменную",
-нет в [ТЗ](readme.md) текста про несколько переменных в IF, а раз нет, то взял за основу информацию из [документации](docs/HowToCreateMessageTemplatesLinkedHelper.html).
+нет в [ТЗ](readme.md) текста про несколько переменных в IF, а раз нет, то взял за основу информацию из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5).
 
 
 ![5](imagesForReadme/5_Araik.png)
 
 
-6. цитирую текст из [документации](docs/HowToCreateMessageTemplatesLinkedHelper.html) - ```No text, symbols or mathematical operations (for example...```,
-так что в feedback есть противоречие [документации](docs/HowToCreateMessageTemplatesLinkedHelper.html);
+6. цитирую текст из [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5) - ```No text, symbols or mathematical operations (for example...```,
+так что в feedback есть противоречие [документации](https://support.linkedhelper.com/hc/en-us/articles/360015590120-How-to-create-message-templates#h_01EJPC64XQ3ZJX6T063M777KB5);
 
 
 ![6](imagesForReadme/6_Araik.png)
@@ -102,5 +102,5 @@
 6) не согласен;
 7) принял.
 
-Таким образом, 3 пункта в feedback противоречит ТЗ, остальные 4 - справедливые замечания.
+Таким образом, 3 пункта в feedback противоречит [ТЗ](readme.md), остальные 4 - справедливые замечания.
 Так или иначе, ВСЕ 7 пунктов были "закрыты" и приложение теперь соответствует всем 7-и.
