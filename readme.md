@@ -5,20 +5,20 @@
 Необходимо разработать редактор шаблонов сообщений и виджет предпросмотра сообщений.
 
 ### Условный скриншот редактора
-![скрин](imagesForReadme/Picture1.png)
+![скрин](imagesForReadme/1_task.png)
 
 ### Виджет предпросмотра шаблона сообщений:
 1. Все переменные заполнены;
 
-![скрин](imagesForReadme/Picture2.png)
+![скрин](imagesForReadme/2_task.png)
 
 2. Заполнены все переменные, кроме position;
 
-![скрин](imagesForReadme/Picture3.png)
+![скрин](imagesForReadme/3_task.png)
 
 3. Заполнены только firstname и lastname.
 
-![скрин](imagesForReadme/Picture4.png)
+![скрин](imagesForReadme/4_task.png)
 
 Требования к виджету редактирования шаблона сообщений:
 1)	На вход виджет получает:
