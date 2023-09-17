@@ -12,18 +12,11 @@
 /*
   При наведении на кнопку разбития блоков (которая должна иметь css класс согласно условию в коде),
   вешаем hover-эффект на все поля редактирования "частей" сообщения,
-  что бы пользователь понимал, можно ли разбить текущий блок или нет.
+  что бы пользователь видел, какой блок разобьётся после нажатия на кнопку "Add ifThenElse".
  */
 .splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canSplit {
   box-shadow: 0 0 5px green;
   padding: 3px 0px 3px 3px;
   border: 1px solid green;
-  outline: none;
-}
-
-.splitterFields:hover ~ .MessageTemplateEditorWidget__containerForSubMessages .MessageTemplateEditor-canNotSplit {
-  box-shadow: 0 0 5px red;
-  padding: 3px 0px 3px 3px;
-  border: 1px solid red;
   outline: none;
 }
