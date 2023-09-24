@@ -393,7 +393,8 @@ export default class MessageTemplate {
             pathToIfThenElse: pathToIfThenElse_new,
             blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
             cursorPosition: 0,
-            version: 0,
+            // увеличили версию, что бы текстовое поле rerender-илось и обновило focus курсора
+            version: this._lastBlurInfo.version++,
         }
 
         this._updateLastBlurVersion();
