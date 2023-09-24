@@ -2,10 +2,11 @@
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
+const {copyFilesToDist} = require("./src/utils/webpackUtils");
 
 const isDevBuild = Boolean(process.env.IS_DEV_BUILD);
 
-module.exports = {
+const webpackConfig = {
     mode: isDevBuild
         ? "development"
         : "production",
@@ -15,7 +16,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js',
-        clean: true,
+        // clean: true,
     },
     module: {
         rules: [
@@ -35,6 +36,14 @@ module.exports = {
                     "sass-loader",
                 ],
             },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                use: [
+                    {
+                        loader: 'file-loader',
+                    },
+                ],
+            },
         ]
     },
     devServer: {
@@ -51,3 +60,13 @@ module.exports = {
         })
     ],
 };
+
+module.exports = () => {
+    return new Promise((resolve) => {
+        resolve(webpackConfig);
+    }).then(response => {
+        copyFilesToDist();
+
+        return response;
+    });
+}
