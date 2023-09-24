@@ -57,9 +57,7 @@ const MessageSnippetsBlock: React.FC<MessageSnippetsBlockProps> = (props) => {
         />
     });
 
-    return <div
-        className={'MessageSnippetsBlock'}
-    >
+    return <div>
         <MessageTemplateEditor
             pathToIfThenElse={path}
             blockType={blockType}

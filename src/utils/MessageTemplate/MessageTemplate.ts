@@ -230,7 +230,10 @@ export default class MessageTemplate {
     /**
      * Разбить текущее поле на 2 и вставить между разбитым и новым полем новый блок IF_THEN_ELSE
      */
-    public splitFieldAndInsertIfThenElse() {
+    public splitFieldAndInsertIfThenElse(
+        pathToIfThenElseSplitTarget: IMessageTemplate.PathToIfThenElse,
+        blockTypeSplitTarget: MESSAGE_TEMPLATE_BLOCK_TYPE,
+    ) {
         const {
             _lastBlurInfo: lastBlurInfo,
         } = this;
@@ -240,14 +243,13 @@ export default class MessageTemplate {
         }
 
         const {
-            pathToIfThenElse: lastBlur_pathToIfThenElse,
-            cursorPosition: lastBlur_cursorPosition,
-            blockType: lastBlur_blockType,
-            version: lastBlur_insertedVariablesVersion,
+            pathToIfThenElse: pathToIfThenElseLastBlur,
+            cursorPosition: cursorPositionLastBlur,
+            blockType: blockTypeLastBlur,
         } = lastBlurInfo;
 
         // null здесь будет только если это if
-        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.NULL) {
+        if (blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.NULL) {
             throw new Error("Can't split field conditional field if!");
         }
 
@@ -255,13 +257,13 @@ export default class MessageTemplate {
             _listIfThenElse: listIfThenElse,
         } = this;
 
-        const ifThenElse_splitTarget: void | IMessageTemplate.IfThenElse = this.getIfThenElseByPath(lastBlur_pathToIfThenElse);
+        const ifThenElse_splitTarget: void | IMessageTemplate.IfThenElse = this.getIfThenElseByPath(pathToIfThenElseSplitTarget);
 
-        const messageSnippets_splitTarget = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
+        const messageSnippets_splitTarget = blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.THEN
             ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoThen
-            : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
+            : blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE
                 ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoElse
-                : lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+                : blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
                     ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).messageSnippetsInfoAdditional
                     : this._messageSnippetInfoInitial
         ;
@@ -269,7 +271,11 @@ export default class MessageTemplate {
         const {
             field: splitTarget_field,
         } = messageSnippets_splitTarget;
-
+        const cursorPositionSplitTarget = pathToIfThenElseSplitTarget === pathToIfThenElseLastBlur
+            && blockTypeSplitTarget === blockTypeLastBlur
+                ? cursorPositionLastBlur
+                : splitTarget_field.message.length
+        ;
         const {
             message: splitTarget_message,
             positionInResultMessage: splitTarget_positionInResultMessage,
@@ -278,15 +284,15 @@ export default class MessageTemplate {
         let splitTarget_parentBlockType: MESSAGE_TEMPLATE_BLOCK_TYPE;
         let splitTarget_pathToParentIfThenElse_or_pathToIfThenElse: IMessageTemplate.PathToIfThenElse;
 
-        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
-            const parentIfThenElseInfo = getParentIfThenElseInfo(lastBlur_pathToIfThenElse);
+        if (blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+            const parentIfThenElseInfo = getParentIfThenElseInfo(pathToIfThenElseSplitTarget);
 
             splitTarget_parentBlockType = parentIfThenElseInfo.blockType;
             splitTarget_pathToParentIfThenElse_or_pathToIfThenElse = parentIfThenElseInfo.pathToIfThenElse;
         }
         else {
-            splitTarget_parentBlockType = lastBlur_blockType;
-            splitTarget_pathToParentIfThenElse_or_pathToIfThenElse = lastBlur_pathToIfThenElse;
+            splitTarget_parentBlockType = blockTypeSplitTarget;
+            splitTarget_pathToParentIfThenElse_or_pathToIfThenElse = pathToIfThenElseSplitTarget;
         }
 
         /** Одно уровневые ifThenElse-ы находящиеся на одном уровне с разбитым текстовым полем */
@@ -302,7 +308,7 @@ export default class MessageTemplate {
           * Если выделено было дополнительное текстовое поле от ifThenElse, то последняя позиция берётся от него.
          */
          const lastPositionInResultMessageInNestingLevel = _createPositionInResultMessage(
-             lastBlur_blockType,
+             blockTypeSplitTarget,
              messageSnippets_splitTarget,
              {
                  positionLastFieldInResultMessage_nestingLevel: lastIfThenElseInNestingLevel?.messageSnippetsInfoAdditional?.field?.positionInResultMessage,
@@ -331,24 +337,24 @@ export default class MessageTemplate {
         }
 
         /* У нового ifThenElse будет следующая позиция, на 1 позже, с каждым добавленным ifThenElse length увеличивается на 1 */
-        const positionIfThenElse_new = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+        const positionIfThenElse_new = blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
             // Но если было выделено дополнительно текстовое поле от ifThenElse, то позицию для нового ifThenElse берём от разбиваемого ifThenElse
             ? (ifThenElse_splitTarget as IMessageTemplate.IfThenElse).position + 1/* На одну позицию позже */
             : listIfThenElseInNestingLevel.length
         ;
 
-        const blockTypeForIfThenElse_new = lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
-            ? getParentIfThenElseInfo(lastBlur_pathToIfThenElse).blockType
-            : lastBlur_blockType
+        const blockTypeForIfThenElse_new = blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+            ? getParentIfThenElseInfo(pathToIfThenElseSplitTarget).blockType
+            : blockTypeSplitTarget
         ;
 
         const pathToIfThenElse_new = MessageTemplate.createPath(
             positionIfThenElse_new,
             blockTypeForIfThenElse_new,
-            lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
+            blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL
             // Если разбиваем дополнительное текстовое поле от ifThenElse, то поднимаемся на уровень выше, это одно уровневый ifThenElse, а не вложенный будет
             ? splitTarget_pathToParentIfThenElse_or_pathToIfThenElse
-            : lastBlur_pathToIfThenElse,
+            : pathToIfThenElseSplitTarget,
         );
 
         const ifThenElse_new = _createIfThenElse(
@@ -359,12 +365,12 @@ export default class MessageTemplate {
             },
             blockTypeForIfThenElse_new,
             // закинули вторую часть разбитого поля в дополнительное поле
-            splitTarget_message.slice(lastBlur_cursorPosition),
+            splitTarget_message.slice(cursorPositionSplitTarget),
             pathToIfThenElse_new,
         );
 
         /* Если добавили одно уровневый ifThenElse, то подвинем соседей */
-        if (lastBlur_blockType === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
+        if (blockTypeSplitTarget === MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL) {
             this._listIfThenElse = new Map(
                 sortListIfThenElse([
                     ...movePositionListIfThenElse(Array.from(this._listIfThenElse.entries()), { path: pathToIfThenElse_new, isAdded: true }),
@@ -380,7 +386,7 @@ export default class MessageTemplate {
         // удалили вторую часть сообщения из разбитого поля
         splitTarget_field.message = splitTarget_message.slice(
             0/* С начала строки */,
-            lastBlur_cursorPosition,
+            cursorPositionSplitTarget,
         );
 
         this._lastBlurInfo = {

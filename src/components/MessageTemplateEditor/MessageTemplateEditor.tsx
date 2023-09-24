@@ -1,7 +1,7 @@
 'use strict';
 
 import * as React from 'react';
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
 import "./MessageTemplateEditor.scss";
@@ -41,6 +41,14 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
         ],
         shallow,
     );
+    const [
+        isShowPanel,
+        setIsShowPanel,
+    ] = useState(false);
+    const [
+        isClickOnPanel,
+        setIsClickOnPanelWas,
+    ] = useState(false);
 
     const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -92,6 +100,9 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
     };
 
     const onClick = (onClickEvent: React.MouseEvent<HTMLTextAreaElement>) => {
+        setIsShowPanel(true);
+        setIsClickOnPanelWas(true);
+
         onKeyDown_or_mouseClick<HTMLTextAreaElement, React.MouseEvent<HTMLTextAreaElement>>(
             onClickEvent,
             messageTemplate,
@@ -108,17 +119,44 @@ const MessageTemplateEditor: React.FC<MessageTemplateEditorProps> = (props) => {
             pathToIfThenElse,
         );
     };
+    const splitBlockAndInsertIfThenElse = () => {
+        messageTemplate.splitFieldAndInsertIfThenElse(pathToIfThenElse, blockType);
+    };
 
-    return <>
+    return <div
+        className={"MessageTemplateEditor"}
+        onMouseLeave={() => setIsShowPanel(false)}
+    >
         <TextareaAutosize
+            className={"MessageTemplateEditor__field field"}
             ref={ref}
             onClick={(Event) => onClick(Event)}
             onKeyUp={(Event) => onKeyUp(Event)}
-            className={`MessageTemplateEditor ${isThisFieldLastBlur ? `MessageTemplateEditor-canSplit` : ''/* На эти модификаторы вешается hover-эффект (подробности см. в соседнем css файле) */}`}
             value={message}
             onChange={onChangeField}
         />
-    </>;
+        <div
+            className={
+            ''.concat(
+                'MessageTemplateEditor__panel panel',
+                ` ${isShowPanel ? 'panel-show': ''}`,
+                ` ${isClickOnPanel && !isShowPanel ? 'panel-hidden': ''}`,
+            )
+        }
+        >
+            <button
+                className={"panel__buttonSplitter buttonSplitter"}
+                onClick={splitBlockAndInsertIfThenElse}
+            >
+                <img
+                    className={"panel__imgButtonSplitter imgButtonSplitter"}
+                    src={"splitterIfThenElse.png"}
+                    alt={"splitter ifThenElse"}
+                />
+                if | then | else
+            </button>
+        </div>
+    </div>;
 }
 
 export default MessageTemplateEditor;

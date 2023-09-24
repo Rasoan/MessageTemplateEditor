@@ -45,12 +45,21 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
 
     return <div className={"IfThenElse"}>
         <div className={"IfThenElse__conditionalFieldsWrapper conditionalFieldsWrapper"}>
-            <button
-                className={"conditionalFieldsWrapper__buttonDeleter buttonDeleter"}
-                onClick={deleteIfThenElse}
+            <div
+                className={"conditionalFieldsWrapper__containerForButtonDeleter containerForButtonDeleter"}
             >
-                Delete
-            </button>
+                <button
+                    className={"containerForButtonDeleter__buttonDeleter buttonDeleter"}
+                    onClick={deleteIfThenElse}
+                >
+                    <img
+                        className={"buttonDeleter__imgButtonDeleter imgButtonDeleter"}
+                        src={"buttonClose.png"}
+                        alt={'close'}
+                    />
+                </button>
+                <div className={"containerForButtonDeleter__stylisticLine stylisticLine"}></div>
+            </div>
             <div className={"conditionalFieldsWrapper__wrapperContent wrapperContent"}>
                 <div className={"wrapperContent__if conditionalBlock conditionalBlockIf"}>
                     <div

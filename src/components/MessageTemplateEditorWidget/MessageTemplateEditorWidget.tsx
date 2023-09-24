@@ -60,14 +60,6 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
 
         messageTemplate.insertVariableInSubMessage(value);
     }
-    const splitBlockAndInsertIfThenElse = () => {
-        try {
-            messageTemplate.splitFieldAndInsertIfThenElse();
-        }
-        catch(error) {
-            alert(error);
-        }
-    };
     const handleCloseMessageTemplateEditorWidget = () => {
         setIsOpenMessageTemplateEditor(false);
     }
@@ -104,27 +96,6 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
                 }
             </>
         </div>
-        <button
-            className={"MessageTemplateEditorWidget__splitterFields splitterFields"}
-            onClick={splitBlockAndInsertIfThenElse}
-        >
-            {
-                /*
-                    &#123; - код кавычки "{"
-                    &#125; - код кавычки "}"
-                */
-            }
-            <span>Click to add:</span>
-            <StickerForCondition
-                content={"if"}
-            /><span>&#123;&#123;some_variable&#125; or expression&#125;</span>
-            <StickerForCondition
-                content={"then"}
-            /><span>&#123;then value&#125;</span>
-            <StickerForCondition
-                content={"else"}
-            /><span>&#123;else value&#125;</span>
-        </button>
         <div
             className={"MessageTemplateEditorWidget__containerForSubMessages"}
         >
