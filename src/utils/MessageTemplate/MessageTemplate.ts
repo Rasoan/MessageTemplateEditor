@@ -383,6 +383,13 @@ export default class MessageTemplate {
             lastBlur_cursorPosition,
         );
 
+        this._lastBlurInfo = {
+            pathToIfThenElse: pathToIfThenElse_new,
+            blockType: MESSAGE_TEMPLATE_BLOCK_TYPE.NULL,
+            cursorPosition: 0,
+            version: 0,
+        }
+
         this._updateLastBlurVersion();
 
         this._stateChangeNotify();
@@ -591,6 +598,19 @@ export default class MessageTemplate {
             blockType: parentBlockTypeIfThenElse_deleted,
         } = getParentIfThenElseInfo(pathToIfThenElse_deleted);
 
+        // Разбираемся с курсором
+        {
+            this._lastBlurInfo = _getLastBlurInfoAfterDeleteIfThenElse(
+                this._listIfThenElse,
+                this._lastBlurInfo,
+                pathToIfThenElse_deleted,
+                {
+                    positionIfThenElse_deleted: positionIfThenElse_deleted,
+                    messageSnippetInfoInitial_contentLength: this._messageSnippetInfoInitial.field.message.length,
+                }
+            );
+        }
+
         // 2, 3, N.. любой ifThenElse с позицией больше нуля возвращает своё дополнительное поле в предыдущий ifThenElse
         if (positionIfThenElse_deleted > 0) {
             const listIfThenElseInDeletedLevel = this.getListIfThenElseInNestingLevel(
@@ -670,19 +690,6 @@ export default class MessageTemplate {
                 ),
             ])
         );
-
-        // Разбираемся с курсором
-        {
-            this._lastBlurInfo = _getLastBlurInfoAfterDeleteIfThenElse(
-                this._listIfThenElse,
-                this._lastBlurInfo,
-                pathToIfThenElse_deleted,
-                {
-                    positionIfThenElse_deleted: positionIfThenElse_deleted,
-                    messageSnippetInfoInitial_contentLength: this._messageSnippetInfoInitial.field.message.length,
-                }
-            );
-        }
 
         this._stateChangeNotify();
     }
@@ -1342,6 +1349,8 @@ function _createIfThenElse(
  * @param lastBlurInfo
  * @param pathToIfThenElse_deleted
  * @param details
+ * @param details.positionIfThenElse_deleted
+ * @param details.messageSnippetInfoInitial_contentLength
  */
 function _getLastBlurInfoAfterDeleteIfThenElse(
     listIfThenElse: Map<IMessageTemplate.PathToIfThenElse, IMessageTemplate.IfThenElse>,
@@ -1387,7 +1396,7 @@ function _getLastBlurInfoAfterDeleteIfThenElse(
         lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_next.path;
         // в текстовое поле "if"
         lastBlurInfo.blockType = MESSAGE_TEMPLATE_BLOCK_TYPE.NULL;
-        lastBlurInfo.cursorPosition = ifThenElseDeleted_next.conditionalIf.length;
+        lastBlurInfo.cursorPosition = _getNewCursorPositionForIfThenElse(ifThenElseDeleted_next, MESSAGE_TEMPLATE_BLOCK_TYPE.NULL);
     }
     // 2) пытаемся воткнуть в ifThenElse на позицию раньше
     else if (positionIfThenElse_deleted > 0) {
@@ -1397,14 +1406,14 @@ function _getLastBlurInfoAfterDeleteIfThenElse(
 
         lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_prev.path;
         lastBlurInfo.blockType = MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL;
-        lastBlurInfo.cursorPosition = ifThenElseDeleted_prev.conditionalIf.length;
+        lastBlurInfo.cursorPosition = _getNewCursorPositionForIfThenElse(ifThenElseDeleted_prev, MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL);
     }
     // 3) пытаемся воткнуть в ifThenElse родительский
     else if (ifThenElseDeleted_parent) {
         lastBlurInfo.pathToIfThenElse = ifThenElseDeleted_parent.path;
         // в родительский блок удалённого ifThenElse
         lastBlurInfo.blockType = parentBlockTypeIfThenElse_deleted;
-        lastBlurInfo.cursorPosition = ifThenElseDeleted_parent.conditionalIf.length;
+        lastBlurInfo.cursorPosition = _getNewCursorPositionForIfThenElse(ifThenElseDeleted_parent, parentBlockTypeIfThenElse_deleted);
     }
     // 4) если и это не выходит, то втыкаем на худой случай в исходное поле
     else {
@@ -1415,6 +1424,29 @@ function _getLastBlurInfoAfterDeleteIfThenElse(
 
     // в противном случае не изменяем lastBlurInfo и оставляем всё как было
     return lastBlurInfo;
+}
+
+function _getNewCursorPositionForIfThenElse(
+    ifThenElse: IMessageTemplate.IfThenElse,
+    blockType: MESSAGE_TEMPLATE_BLOCK_TYPE,
+): number {
+    switch (blockType) {
+        case MESSAGE_TEMPLATE_BLOCK_TYPE.THEN: {
+            return ifThenElse.messageSnippetsInfoThen.field.message.length;
+        }
+        case MESSAGE_TEMPLATE_BLOCK_TYPE.ELSE: {
+            return ifThenElse.messageSnippetsInfoElse.field.message.length;
+        }
+        case MESSAGE_TEMPLATE_BLOCK_TYPE.ADDITIONAL: {
+            return ifThenElse.messageSnippetsInfoAdditional.field.message.length;
+        }
+        case MESSAGE_TEMPLATE_BLOCK_TYPE.NULL: {
+            return ifThenElse.conditionalIf.length;
+        }
+        default: {
+            throw new Error("Unknown block type of ifThenElse!");
+        }
+    }
 }
 
 /**
