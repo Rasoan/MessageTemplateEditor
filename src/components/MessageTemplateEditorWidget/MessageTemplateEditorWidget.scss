@@ -1,8 +1,7 @@
 $fontColor: white;
 
 .MessageTemplateEditorWidget {
-  min-width: 1000px;
-  max-width: max-content;
+  width: 100%;
   margin: 20px;
 
   &__variablesContainer {
@@ -15,6 +14,28 @@ $fontColor: white;
 
   &__header {
 
+  }
+}
+
+.containerForContent {
+  display: flex;
+}
+
+.contentItem {
+  padding: 0 20px;
+
+  &-preview {
+    flex-grow: 1;
+    margin-left: 20px;
+    max-width: 500px;
+    min-width: 300px;
+  }
+
+  &-listIfThenElse {
+    flex-grow: 2;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 2000px;
   }
 }
 

@@ -4,11 +4,10 @@ $fontColor: white;
 // box-shadow генерировал здесь   // сгенерировал здесь https://active-vision.ru/icon/box-shadow
 
 .MessageTemplateEditor {
-  width: 1000px;
+  width: 100%;
   border: 0;
   border-radius: 6px;
   outline: 1px solid black;
-  overflow: hidden;
   background-color: $backgroundColor;
 }
 
@@ -20,7 +19,6 @@ $fontColor: white;
   display: block;
   box-sizing: border-box;
   padding: 9px 6px;
-  overflow: hidden;
   border: none;
   outline: none;
   box-shadow: 0 2px 0 0 #0000004a;

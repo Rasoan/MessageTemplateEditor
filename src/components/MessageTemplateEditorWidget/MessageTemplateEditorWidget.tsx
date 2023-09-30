@@ -97,18 +97,23 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
             </>
         </div>
         <div
-            className={"MessageTemplateEditorWidget__containerForSubMessages"}
+            className={"MessageTemplateEditorWidget__containerForContent containerForContent"}
         >
-            <MessageSnippetsBlock
-                countNested={1}
-                blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL}
-                path={'' as IMessageTemplate.PathToIfThenElse}
-            />
+            <div
+                className={"containerForContent__contentItem contentItem contentItem-listIfThenElse"}
+            >
+                <MessageSnippetsBlock
+                    countNested={1}
+                    blockType={MESSAGE_TEMPLATE_BLOCK_TYPE.INITIAL}
+                    path={'' as IMessageTemplate.PathToIfThenElse}
+                />
+            </div>
+            <div
+                className={"containerForContent__contentItem contentItem contentItem-preview"}
+            >
+                <MessageTemplatePreviewWidget/>
+            </div>
         </div>
-        {isOpenMessageTemplatePreviewWidget ? <>
-                <MessageTemplatePreviewWidget handleClose={handleClosePreviewWidget} />
-            </>
-            : null}
         <div
             className={'MessageTemplateEditorWidget__controlPanel controlPanel'}
         >

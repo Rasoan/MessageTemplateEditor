@@ -8,14 +8,7 @@ import './MessageTemplatePreviewWidget.scss';
 import VariableValueEditor from "../VariableValueEditor/VariableValueEditor";
 import Modal from "../Modal/Modal";
 
-interface _MessageTemplatePreviewWidgetProps {
-    handleClose: () => void;
-}
-
-const _MessageTemplatePreviewWidget: React.FC<_MessageTemplatePreviewWidgetProps> = (props) => {
-    const {
-        handleClose,
-    } = props;
+const MessageTemplatePreviewWidget: React.FC = () => {
     const [
         messageTemplate,
         previewWidget,
@@ -53,25 +46,8 @@ const _MessageTemplatePreviewWidget: React.FC<_MessageTemplatePreviewWidgetProps
                 </span>
                 {variables}
             </div>
-            <button
-                className={'MessageTemplatePreviewWidget__buttonClose buttonClose'}
-                onClick={handleClose}
-            >
-                Close
-            </button>
         </div>
     </>
 }
 
-const MessageTemplatePreviewWidget: React.FC<_MessageTemplatePreviewWidgetProps> = (props) => {
-    const {
-        handleClose,
-    } = props;
-
-    return <Modal
-        isShowing={true}
-        close={handleClose}
-        component={<_MessageTemplatePreviewWidget handleClose={handleClose} />}
-    />
-}
 export default MessageTemplatePreviewWidget;
