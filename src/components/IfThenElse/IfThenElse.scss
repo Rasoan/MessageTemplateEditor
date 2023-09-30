@@ -1,6 +1,10 @@
 .conditionalFieldsWrapper {
   display: flex;
   overflow: hidden;
+
+  &__wrapperContent {
+    padding: 1px;
+  }
 }
 
 .containerForButtonDeleter {
@@ -51,10 +55,6 @@
 .conditionalBlock {
   margin: 15px 0 15px 20px;
   display: flex;
-
-  &__stickerForConditionContainer {
-    margin-right: 40px;
-  }
 }
 
 .stickerForConditionContainer {

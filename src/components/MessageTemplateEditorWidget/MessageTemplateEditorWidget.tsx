@@ -78,7 +78,7 @@ const MessageTemplateEditorWidget: React.FC<MessageTemplateEditorWidgetProps> = 
         <h2
             className={'MessageTemplateEditorWidget__header header'}
         >
-            Message Template Editor
+            Message Template Editor PRO
         </h2>
         <div
             className={'MessageTemplateEditorWidget__variablesContainer variablesContainer'}

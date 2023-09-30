@@ -1,23 +1,31 @@
+$splitterFontColor: #5674bd;
+$backgroundColor: #00000036;
+$fontColor: white;
+// box-shadow генерировал здесь   // сгенерировал здесь https://active-vision.ru/icon/box-shadow
+
 .MessageTemplateEditor {
   width: 1000px;
-  border: 1px solid black;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 6px;
+  outline: 1px solid black;
   overflow: hidden;
+  background-color: $backgroundColor;
 }
 
 .field {
   resize: none;
   width: 100%;
-  min-height: 50px;
+  min-height: 34px;
   max-height: 100%;
   display: block;
   box-sizing: border-box;
-  padding: 4px;
+  padding: 9px 6px;
   overflow: hidden;
-  border-top: none;
-  border-left: none;
-  border-right: none;
+  border: none;
   outline: none;
+  box-shadow: 0 2px 0 0 #0000004a;
+  background-color: $backgroundColor;
+  color: $fontColor;
 }
 
 .panel {
@@ -25,9 +33,10 @@
   align-items: center;
   overflow: hidden;
   height: 0;
+  background-color: $backgroundColor;
 
   &-show {
-    height: 70px;
+    height: 60px;
     animation: height-grow-animation 0.1s linear;
   }
 
@@ -47,14 +56,14 @@
   60%   { height: 42px; }
   70%   { height: 49px; }
   80%   { height: 56px; }
-  90%   { height: 63px; }
-  100%  { height: 70px; }
+  100%   { height: 60px; }
+  //100%  { height: 70px; }
 }
 
 @keyframes height-decreases-animation {
-  0%  { height: 70px; }
-  10%   { height: 63px; }
-  20%   { height: 56px; }
+  //0%  { height: 70px; }
+  0%   { height: 60px; }
+  15%   { height: 56px; }
   30%   { height: 49px; }
   40%   { height: 42px; }
   50%   { height: 35px; }
@@ -66,18 +75,22 @@
 }
 
 .buttonSplitter {
-  width: 200px;
+  width: 180px;
   display: flex;
-  margin: 20px 10px 20px auto;
+  margin: 0px 10px 00px auto;
   text-transform: uppercase;
   color: #5674bd;
   justify-content: space-between;
-  padding: 5px 10px;
+  padding: 4px 10px;
   align-items: center;
-  border: 1px solid black;
+  border: 0;
   border-radius: 9px;
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.8;
+  -webkit-box-shadow: 0px 0px 2px 1px #ffffff73;
+  -moz-box-shadow: 0px 0px 2px 1px #ffffff73;
+  box-shadow: 0px 0px 2px 1px #ffffff73;
+  background: none;
 
   &:hover {
     cursor: pointer;
@@ -90,10 +103,11 @@
   height: 30px;
 }
 
-.MessageTemplateEditor:has(.buttonSplitter:hover) {
-  box-shadow: 0 0 5px green;
-  border: 1px solid green;
-  outline: none;
+.MessageTemplateEditor:has(.field:focus-visible) {
+  outline: 1px solid $splitterFontColor;
+  -webkit-box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
+  -moz-box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
+  box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
 }
 
 /*

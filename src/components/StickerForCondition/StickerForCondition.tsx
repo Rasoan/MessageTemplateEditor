@@ -6,14 +6,27 @@ import "./StickerForCondition.scss";
 
 interface StickerForConditionProps {
     content: string;
+    textColor?: string;
 }
 
 const StickerForCondition: React.FC<StickerForConditionProps> = (props) => {
     const {
         content,
+        textColor,
     } = props;
 
-    return <span className={"stickerForCondition"}>{content}</span>;
+    const additionalStyle = { color: 'black' };
+
+    if (textColor !== void 0) {
+        additionalStyle.color = textColor;
+    }
+
+    return <span
+        style={additionalStyle}
+        className={"stickerForCondition"}
+    >
+        {content}
+    </span>;
 }
 
 export default StickerForCondition;

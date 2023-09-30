@@ -65,7 +65,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                     <div
                         className={'conditionalBlock__stickerForConditionContainer stickerForConditionContainer'}
                     >
-                        <StickerForCondition content={'if'}/>
+                        <StickerForCondition content={'if'} textColor={'#5674bd'} />
                     </div>
                     <MessageTemplateConditionEditor
                         pathToIfThenElse={path}
@@ -73,7 +73,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 </div>
                 <div className={"wrapperContent__conditionalBlock conditionalBlock conditionalBlockThen"}>
                     <div className={"conditionalBlock__stickerForConditionContainer stickerForConditionContainer"}>
-                        <StickerForCondition content={'then'}/>
+                        <StickerForCondition content={'then'} textColor={'#cf00b4'} />
                     </div>
                     <MessageSnippetsBlock
                         path={path}
@@ -84,7 +84,7 @@ const IfThenElse: React.FC<IfThenElseProps> = (props) => {
                 </div>
                 <div className={"wrapperContent__conditionalBlock conditionalBlock conditionalBlockElse"}>
                     <div className={"conditionalBlock__stickerForConditionContainer stickerForConditionContainer"}>
-                        <StickerForCondition content={'else'}/>
+                        <StickerForCondition content={'else'} textColor={'#00aaff'} />
                     </div>
                     <MessageSnippetsBlock
                         path={path}
