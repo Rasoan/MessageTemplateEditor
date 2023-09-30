@@ -34,7 +34,7 @@ $fontColor: white;
   background-color: $backgroundColor;
 
   &-show {
-    height: 60px;
+    height: 70px;
     animation: height-grow-animation 0.1s linear;
   }
 
@@ -53,15 +53,14 @@ $fontColor: white;
   50%   { height: 35px; }
   60%   { height: 42px; }
   70%   { height: 49px; }
-  80%   { height: 56px; }
-  100%   { height: 60px; }
-  //100%  { height: 70px; }
+  80%   { height: 60px; }
+  100%  { height: 70px; }
 }
 
 @keyframes height-decreases-animation {
   //0%  { height: 70px; }
-  0%   { height: 60px; }
-  15%   { height: 56px; }
+  0%   { height: 70px; }
+  15%   { height: 60px; }
   30%   { height: 49px; }
   40%   { height: 42px; }
   50%   { height: 35px; }
@@ -75,7 +74,7 @@ $fontColor: white;
 .buttonSplitter {
   width: 180px;
   display: flex;
-  margin: 0px 10px 00px auto;
+  margin: 0  15px 0 auto;
   text-transform: uppercase;
   color: #5674bd;
   justify-content: space-between;

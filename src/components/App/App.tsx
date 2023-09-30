@@ -41,9 +41,7 @@ export default function App(): JSX.Element {
         toggleIsOpenMessageTemplateEditor(true);
     }
 
-    return <div
-        className={'App'}
-    >
+    return <>
         {
             // isOpenMessageTemplateEditor
             true
@@ -53,11 +51,11 @@ export default function App(): JSX.Element {
                     template={messageTemplate}
                 />
                 : <button
-                className={'App__toggleMessageTemplate toggleMessageTemplate'}
+                    className={'App__toggleMessageTemplate toggleMessageTemplate'}
                     onClick={handleOpenMessageTemplateEditor}
                 >
                     Message Editor
                 </button>
         }
-    </div>;
+    </>;
 }
