@@ -42,7 +42,7 @@ const MessageTemplatePreviewWidget: React.FC = () => {
                 <span
                     className={'variablesContainer__variablesHeader variablesHeader'}
                 >
-                    Variables:
+                    Linkedin variables:
                 </span>
                 {variables}
             </div>

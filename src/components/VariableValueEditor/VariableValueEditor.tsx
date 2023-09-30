@@ -30,7 +30,7 @@ const VariableValueEditor: React.FC<VariableValueEditorProps> = (props) => {
             className={'VariableValueEditor__label VariableValueEditorLabel'}
             htmlFor={variableKey}
         >
-            {variableKey}
+            {"{" + variableKey + "}"}
         </label>
         <input
             className={'VariableValueEditor__field VariableValueEditorField'}

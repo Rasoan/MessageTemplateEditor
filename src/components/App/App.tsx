@@ -43,8 +43,7 @@ export default function App(): JSX.Element {
 
     return <>
         {
-            // isOpenMessageTemplateEditor
-            true
+            isOpenMessageTemplateEditor
                 ? <MessageTemplateEditorWidget
                     callbackSave={callbackSave}
                     arrVarNames={arrVarNames}

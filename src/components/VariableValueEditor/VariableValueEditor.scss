@@ -1,14 +1,25 @@
+$backgroundColor: #00000036;
+$fontColor: white;
+
 .VariableValueEditor {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   margin: 5px 0;
 }
 
 .VariableValueEditorLabel {
-  margin-right: 8px;
+  margin: 10px 8px;
   width: 80px;
+  color: $fontColor;
 }
 
 .VariableValueEditorField {
   height: 20px;
   width: 100%;
+  border: none;
+  padding: 5px;
+  color: $fontColor;
+  background-color: $backgroundColor;
 }
