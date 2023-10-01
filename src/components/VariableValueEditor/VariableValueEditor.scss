@@ -1,5 +1,6 @@
 $backgroundColor: #00000036;
 $fontColor: white;
+$fieldBorderColor: #5674bd;
 
 .VariableValueEditor {
   display: flex;
@@ -22,4 +23,12 @@ $fontColor: white;
   padding: 5px;
   color: $fontColor;
   background-color: $backgroundColor;
+  border-radius: 6px;
+
+  &:focus-visible {
+    outline: 1px solid $fieldBorderColor;
+    -webkit-box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
+    -moz-box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
+    box-shadow: 0 0 2px 2px rgba(86, 116, 189, 0.41);
+  }
 }

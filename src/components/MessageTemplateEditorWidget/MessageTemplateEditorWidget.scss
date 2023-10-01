@@ -2,11 +2,8 @@ $fontColor: white;
 
 .MessageTemplateEditorWidget {
   width: 100%;
-  margin: 20px;
-
-  &__variablesContainer {
-    margin-bottom: 40px;
-  }
+  padding: 10px;
+  box-sizing: border-box;
 
   &__splitterFields {
     margin: 0 0 20px 300px;
@@ -22,18 +19,21 @@ $fontColor: white;
 }
 
 .contentItem {
+  flex-basis: 0;
+
   &-preview {
-    flex-grow: 1;
+    flex-grow: 3;
     margin-left: 20px;
     max-width: 500px;
-    min-width: 300px;
+    min-width: 150px;
+    overflow: hidden;
   }
 
   &-listIfThenElse {
-    flex-grow: 2;
+    flex-grow: 7;
     overflow-x: auto;
-    width: 100%;
     max-width: 2000px;
+    min-width: 400px;
     padding-bottom: 20px;
   }
 }
@@ -44,6 +44,8 @@ $fontColor: white;
 }
 
 .variablesContainer {
+  padding: 10px;
+
   &__variableButton {
     margin-right: 10px;
   }
@@ -71,27 +73,6 @@ $fontColor: white;
   padding: 8px 20px;
   border: 1px solid #b9a1a1;
   border-radius: 6px;
-
-  &:hover {
-    cursor: pointer;
-  }
-}
-
-.controlPanel {
-  display: flex;
-  justify-content: center;
-
-  &__controlButton {
-    margin: 20px 30px
-  }
-}
-
-.controlButton {
-  padding: 10px 20px;
-  background-color: black;
-  color: white;
-  border-radius: 4px;
-  border: 0;
 
   &:hover {
     cursor: pointer;

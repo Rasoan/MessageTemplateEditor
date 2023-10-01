@@ -49,12 +49,16 @@ export default function App(): JSX.Element {
                     arrVarNames={arrVarNames}
                     template={messageTemplate}
                 />
-                : <button
-                    className={'App__toggleMessageTemplate toggleMessageTemplate'}
-                    onClick={handleOpenMessageTemplateEditor}
+                : <div
+                    className={'App__containerForToggle containerForToggle'}
                 >
-                    Message Editor
-                </button>
+                    <button
+                        className={'containerForToggle__toggleMessageTemplate toggleMessageTemplate'}
+                        onClick={handleOpenMessageTemplateEditor}
+                    >
+                        Message Editor
+                    </button>
+                </div>
         }
     </>;
 }

@@ -1,3 +1,5 @@
+$leftControlButtonBackground: #5b88eb;
+
 .MessageTemplatePreviewWidget {
   width: 100%;
 }
@@ -11,7 +13,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 30px;
-  max-height: 350px;
+  max-height: 600px;
   word-wrap: break-word;
   color: white;
   background-color: #51525d;
@@ -25,4 +27,43 @@
   font-weight: bold;
   font-size: 18px;
   color: white;
+}
+
+.controlPanel {
+  display: flex;
+  justify-content: center;
+  margin: 15px 10px;
+}
+
+.controlButton {
+  width: 100%;
+  margin: 0;
+  padding: 10px 20px;
+  background-color: black;
+  color: white;
+  border-radius: 4px;
+  border: 0;
+  opacity: 0.8;
+
+  &-left {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    color: white;
+    background-color: $leftControlButtonBackground;
+  }
+
+  &-right {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+
+  &:hover {
+    cursor: pointer;
+    opacity: 1;
+    box-shadow: 0 0 2px 2px #fbfbffcc;
+  }
+
+  &:active {
+    box-shadow: 0 0 6px 2px #fbfbffcc;
+  }
 }

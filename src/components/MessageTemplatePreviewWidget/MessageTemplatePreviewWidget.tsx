@@ -6,16 +6,25 @@ import {shallow} from "zustand/shallow";
 
 import './MessageTemplatePreviewWidget.scss';
 import VariableValueEditor from "../VariableValueEditor/VariableValueEditor";
-import Modal from "../Modal/Modal";
 
-const MessageTemplatePreviewWidget: React.FC = () => {
+interface MessageTemplatePreviewWidgetProps {
+    /** асинхронный callback сохранения шаблона */
+    callbackSave: () => Promise<void>;
+}
+
+const MessageTemplatePreviewWidget: React.FC<MessageTemplatePreviewWidgetProps> = (props) => {
+    const {
+        callbackSave,
+    } = props;
     const [
         messageTemplate,
         previewWidget,
+        setIsOpenMessageTemplateEditor,
     ] = useBaseStore(stateManager =>
             [
                 stateManager.state.messageTemplate,
                 stateManager.state.messageTemplate.previewWidget,
+                stateManager.state.setIsOpenMessageTemplateEditor,
             ],
         shallow,
     );
@@ -27,10 +36,31 @@ const MessageTemplatePreviewWidget: React.FC = () => {
         />
     });
 
+    const handleCloseMessageTemplateEditorWidget = () => {
+        setIsOpenMessageTemplateEditor(false);
+    }
+
     return <>
         <div
             className={'MessageTemplatePreviewWidget'}
         >
+            <div
+                className={'MessageTemplatePreviewWidget__controlPanel controlPanel'}
+            >
+                <button
+                    className={'controlPanel__controlButton controlButton controlButton-left'}
+                    onClick={callbackSave}
+                >
+                    Save
+                </button>
+                <button
+                    className={'controlPanel__controlButton controlButton controlButton-right'}
+                    onClick={handleCloseMessageTemplateEditorWidget}
+                    title={'Перед нажатием убедитесь, что сохранили редактор шаблона сообщений!'}
+                >
+                    Close
+                </button>
+            </div>
             <div className={'MessageTemplatePreviewWidget__previewWidgetContainer previewWidgetContainer'}>
             <div
                 className={'previewWidgetContainer__text previewWidgetContainerText'}
@@ -42,7 +72,7 @@ const MessageTemplatePreviewWidget: React.FC = () => {
                 <span
                     className={'variablesContainer__variablesHeader variablesHeader'}
                 >
-                    Linkedin variables:
+                    Linkedin variables
                 </span>
                 {variables}
             </div>
