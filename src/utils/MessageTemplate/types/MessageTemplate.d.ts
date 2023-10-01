@@ -105,122 +105,10 @@ export const enum MESSAGE_TEMPLATE_BLOCK_TYPE {
     ADDITIONAL = 4,
 }
 
-// export const enum IfThenElseItemDTO_Props {
-//     key = 0,
-//     ifThenElseDTO = 1,
-//
-//     __SIZE__ = 2,
-// }
-
-// export type IfThenElseItemDTO = [
-//     key: IMessageTemplate.Path,
-//     ifThenElseDTO: IfThenElseDTO,
-// ];
-
-export const enum VariableInfoDTO_Props {
-    key = 0,
-    value = 1,
-
-    __SIZE__ = 3,
-}
-
-export type VariableInfoDTO = [
-    key: string,
-    value: string,
-];
-
-export type VariableInfoJSON = VariableInfoDTO;
-
 export interface IfThenElseItemJSON {
     pathToIfThenElse: IMessageTemplate.PathToIfThenElse;
     ifThenElse: IMessageTemplate.IfThenElse;
 }
-//
-// export const enum IfThenElseDTO_Props {
-//     path = 0,
-//     dependencyVariableName = 1,
-//     messageSnippetsThen = 2,
-//     messageSnippetsElse = 3,
-//
-//     __SIZE__ = 4
-// }
-//
-// export type IfThenElseDTO = [
-//     path: IMessageTemplate.Path,
-//     dependencyVariableName: string,
-//     messageSnippetsThen: MessageSnippetsDTO,
-//     messageSnippetsElse: MessageSnippetsDTO,
-// ];
-//
-// export const enum MessageSnippetsDTO_Props {
-//     blockType = 0,
-//     path = 1,
-//     field = 2,
-//     fieldAdditional = 3,
-//
-//     __SIZE__ = 4
-// }
-//
-// export type MessageSnippetsDTO = [
-//     blockType: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
-//     path: IMessageTemplate.Path,
-//     field: MessageFieldDetailsDTO,
-//     fieldAdditional: MessageFieldDetailsDTO,
-// ];
-//
-// export const enum MessageFieldDetailsDTO_Props {
-//     message = 0,
-//     fieldType = 1,
-//     positionInResultMessage = 2,
-//     isCanSplit = 3,
-//
-//     __SIZE__ = 4
-// }
-//
-// export type MessageFieldDetailsDTO = [
-//     message: string,
-//     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
-//     positionInResultMessage: number,
-//     isCanSplit: boolean,
-// ];
-//
-// export const enum MessageTemplateDTO_Props {
-//     ifThenElseDTOList = 0,
-//     defaultMessageSnippets = 1,
-//     lastBlurSnippetMessageInformation = 2,
-//
-//     __SIZE__ = 3,
-// }
-//
-// export const enum LastBlurSnippetMessageInformationDTO_Props {
-//     fieldType = 0,
-//     /** void 0 если это самый первый блок */
-//     blockType = 1,
-//
-//     __SIZE__ = 2
-// }
-//
-// export type LastBlurSnippetMessageInformationDTO = [
-//     fieldType: MESSAGE_TEMPLATE_FIELD_TYPE,
-//     /** void 0 если это самый первый блок */
-//     blockType?: MESSAGE_TEMPLATE_BLOCK_TYPE | void,
-// ]
-//
-// export const enum LastBlurInformationDTO_Props {
-//     path = 0,
-//     cursorPosition = 1,
-//     insertedVariablesVersion = 2,
-//     snippetMessageInformationDTO = 3,
-//
-//     __SIZE__ = 4
-// }
-//
-// export type LastBlurInformationDTO = [
-//     path: IMessageTemplate.Path,
-//     cursorPosition: number,
-//     insertedVariablesVersion: number,
-//     snippetMessageInformationDTO?: LastBlurSnippetMessageInformationDTO | void,
-// ];
 
 export interface MessageTemplateJSON {
     /** Список ifThenElse с ключами */
@@ -230,6 +118,3 @@ export interface MessageTemplateJSON {
     /** Информация о последнем выделенном текстовом поле */
     lastBlurInfo: IMessageTemplate.LastBlurInfo;
 }
-
-// todo: написать здесь нормальный код для DTO формата
-export type MessageTemplateDTO = MessageTemplateJSON;

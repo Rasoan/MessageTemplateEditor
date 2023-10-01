@@ -30,7 +30,7 @@ export default function App(): JSX.Element {
     );
     const callbackSave = async (): Promise<void> => {
         ProxyLocalStorage.setMessageTemplate(
-            JSON.stringify(messageTemplate.toDTO()),
+            JSON.stringify(messageTemplate.toJSON()),
         );
         ProxyLocalStorage.setVariables(
             JSON.stringify(messageTemplate.variablesListToDTO()),

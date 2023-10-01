@@ -3,7 +3,7 @@
 import MessageTemplate from "../../utils/MessageTemplate/MessageTemplate";
 import {IBaseState} from "./types/BaseState";
 import ProxyLocalStorage from "../../utils/ProxyLocalStorage/ProxyLocalStorage";
-import {IMessageTemplate, MessageTemplateDTO} from "../../utils/MessageTemplate/types/MessageTemplate";
+import {IMessageTemplate, MessageTemplateJSON} from "../../utils/MessageTemplate/types/MessageTemplate";
 
 export default class BaseState {
     private _stateChangeNotify: Function;
@@ -51,12 +51,12 @@ function createMessageTemplate(options: IBaseState.Options): MessageTemplate {
     const {
         stateChangeNotify,
     } = options;
-    const messageTemplateDTO: MessageTemplateDTO | null = JSON.parse(ProxyLocalStorage.getMessageTemplate());
+    const messageTemplateJSON: MessageTemplateJSON | null = JSON.parse(ProxyLocalStorage.getMessageTemplate());
     const variablesKeysList: IMessageTemplate.VariablesKeysList | null = JSON.parse(ProxyLocalStorage.getKeysVariablesList());
 
-    return messageTemplateDTO
-        ? MessageTemplate.fromDTO(
-            messageTemplateDTO,
+    return messageTemplateJSON
+        ? MessageTemplate.fromJSON(
+            messageTemplateJSON,
             stateChangeNotify,
             variablesKeysList || void 0,
         )
