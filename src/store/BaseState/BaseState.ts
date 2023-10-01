@@ -9,7 +9,6 @@ export default class BaseState {
     private _stateChangeNotify: Function;
 
     public isOpenMessageTemplateEditor: boolean = false;
-    public isOpenMessageTemplatePreviewWidget: boolean = false;
     public messageTemplate: MessageTemplate;
     public arrVarNames: string[];
 
@@ -22,16 +21,19 @@ export default class BaseState {
 
         this.messageTemplate = createMessageTemplate({ stateChangeNotify });
         this.arrVarNames = this.messageTemplate.variablesKeysList;
+        const isOpenMessageTemplateEditor = ProxyLocalStorage.getIsOpenMessageTemplateEditor();
+
+        if (typeof isOpenMessageTemplateEditor !== null) {
+            this.isOpenMessageTemplateEditor = isOpenMessageTemplateEditor;
+        }
     }
 
     public setIsOpenMessageTemplateEditor = (isOpenMessageTemplateEditor: boolean) => {
         this.isOpenMessageTemplateEditor = isOpenMessageTemplateEditor;
 
-        this._stateChangeNotify();
-    }
-
-    public setIsOpenMessageTemplatePreviewWidget = (isOpenMessageTemplatePreviewWidget: boolean) => {
-        this.isOpenMessageTemplatePreviewWidget = isOpenMessageTemplatePreviewWidget;
+        ProxyLocalStorage.setIsOpenMessageTemplateEditor(
+            JSON.stringify(isOpenMessageTemplateEditor)
+        );
 
         this._stateChangeNotify();
     }
